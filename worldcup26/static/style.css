@@ -427,6 +427,10 @@ input {
   background: rgba(255, 250, 241, 0.92);
 }
 
+.room-menu {
+  padding: 1rem;
+}
+
 .anchor-target {
   scroll-margin-top: 8rem;
 }

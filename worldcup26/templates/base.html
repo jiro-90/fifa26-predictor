@@ -16,10 +16,12 @@
           <img src="{{ url_for('static', filename='hero-crest.svg') }}" alt="FIFA 26 Duel crest">
           <span>FIFA 26 Duel</span>
         </a>
-        <nav class="topnav">
-          <a href="{{ url_for('main.index') }}">Home</a>
-          <a href="{{ url_for('main.rules') }}">Rules</a>
-        </nav>
+        {% if request.endpoint != "main.room" %}
+          <nav class="topnav">
+            <a href="{{ url_for('main.index') }}">Home</a>
+            <a href="{{ url_for('main.rules') }}">Rules</a>
+          </nav>
+        {% endif %}
       </header>
       {% with messages = get_flashed_messages() %}
         {% if messages %}

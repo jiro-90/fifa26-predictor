@@ -42,12 +42,10 @@ Password: {{ room_password }}</textarea>
     </div>
   </section>
 
-  <section class="panel jump-panel">
-    <div class="section-title">
-      <h2>Quick Jump</h2>
-      <p>Move through the room by phase instead of one long scroll.</p>
-    </div>
+  <section class="panel jump-panel room-menu">
     <nav class="jump-links">
+      <a href="{{ url_for('main.index') }}">Home</a>
+      <a href="{{ url_for('main.rules') }}">Rules</a>
       <a href="#leaderboard">Leaderboard</a>
       <a href="#groups">Groups</a>
       {% if knockout_sections %}
