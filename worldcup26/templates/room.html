@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Room {{ room.code }} | FIFA 26 Duel{% endblock %}
+{% block menu_links %}
+  <div class="menu-divider"></div>
+  <a href="#leaderboard" data-menu-link>Leaderboard</a>
+  <a href="#groups" data-menu-link>Groups</a>
+  {% if knockout_sections %}
+    <a href="#knockout" data-menu-link>Knockout</a>
+  {% endif %}
+{% endblock %}
 {% block content %}
   <section class="room-header">
     <div>
@@ -40,18 +48,6 @@ Password: {{ room_password }}</textarea>
         </article>
       {% endfor %}
     </div>
-  </section>
-
-  <section class="panel jump-panel room-menu">
-    <nav class="jump-links">
-      <a href="{{ url_for('main.index') }}">Home</a>
-      <a href="{{ url_for('main.rules') }}">Rules</a>
-      <a href="#leaderboard">Leaderboard</a>
-      <a href="#groups">Groups</a>
-      {% if knockout_sections %}
-        <a href="#knockout">Knockout</a>
-      {% endif %}
-    </nav>
   </section>
 
   <div class="left-column room-main">
