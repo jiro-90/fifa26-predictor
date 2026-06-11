@@ -5,3 +5,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
+data/rooms.json
+data/last_sync.json
+data/sync.log
