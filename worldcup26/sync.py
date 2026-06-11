@@ -10,7 +10,7 @@ import requests
 from flask import current_app
 
 from .filedb import load_json, save_json_atomic
-from .tournament import load_tournament, parse_utc, save_tournament
+from .tournament import group_complete, load_tournament, parse_utc, save_tournament
 
 
 def utc_timestamp() -> str:
@@ -203,12 +203,15 @@ class FootballDataProvider(SyncProvider):
 
     def update_group_positions(self, tournament: dict[str, Any], standings_payload: dict[str, Any], aliases: dict[str, str]) -> int:
         groups = {group["id"]: group for group in tournament.get("groups", [])}
+        matches = tournament.get("matches", [])
         updated = 0
         for standing in standings_payload.get("standings", []):
             if standing.get("type") != "TOTAL":
                 continue
             group_id = self.map_group(standing.get("group"))
             if not group_id or group_id not in groups:
+                continue
+            if not group_complete(group_id, matches):
                 continue
 
             actual_positions = []
