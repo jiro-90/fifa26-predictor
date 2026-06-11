@@ -158,8 +158,8 @@ function roomStateKey() {
 }
 
 function scrollSectionIntoView(item) {
-  const jumpPanel = document.querySelector(".jump-panel");
-  const topOffset = (jumpPanel?.getBoundingClientRect().height || 0) + 24;
+  const menuToggle = document.querySelector(".site-menu .menu-toggle");
+  const topOffset = (menuToggle?.getBoundingClientRect().height || 0) + 32;
   const targetTop = window.scrollY + item.getBoundingClientRect().top - topOffset;
   window.scrollTo({
     top: Math.max(targetTop, 0),
@@ -357,6 +357,15 @@ document.querySelectorAll("[data-copy-target]").forEach((button) => {
       if (target.select) {
         target.select();
       }
+    }
+  });
+});
+
+document.querySelectorAll("[data-menu-link]").forEach((link) => {
+  link.addEventListener("click", () => {
+    const menu = link.closest("[data-menu]");
+    if (menu) {
+      menu.open = false;
     }
   });
 });
