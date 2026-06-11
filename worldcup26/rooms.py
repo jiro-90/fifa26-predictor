@@ -39,7 +39,13 @@ def generate_room_password() -> str:
     return secrets.token_urlsafe(8)[:10]
 
 
-def create_room(player_name: str) -> dict[str, Any]:
+def validate_player_secret(player_secret: str) -> str | None:
+    if len(player_secret.strip()) < 4:
+        return "Personal login password must be at least 4 characters."
+    return None
+
+
+def create_room(player_name: str, player_secret: str) -> dict[str, Any]:
     created: dict[str, Any] = {}
 
     def updater(payload):
@@ -53,9 +59,14 @@ def create_room(player_name: str) -> dict[str, Any]:
         rooms[code] = {
             "code": code,
             "password_hash": hash_password(password),
+            "share_password": password,
             "created_at": utc_timestamp(),
             "players": {
-                "one": {"name": player_name, "joined_at": utc_timestamp()},
+                "one": {
+                    "name": player_name,
+                    "joined_at": utc_timestamp(),
+                    "login_hash": hash_password(player_secret),
+                },
                 "two": None,
             },
             "predictions": {
@@ -69,30 +80,51 @@ def create_room(player_name: str) -> dict[str, Any]:
     return {"room": updated["rooms"][created["code"]], "password": created["password"]}
 
 
-def join_room(code: str, password: str, player_name: str) -> tuple[dict[str, Any] | None, str | None, str | None]:
+def verify_room_access(code: str, password: str) -> tuple[dict[str, Any] | None, str | None]:
     code = code.upper().strip()
     rooms = load_rooms()["rooms"]
     room = rooms.get(code)
     if room is None:
-        return None, "Room not found.", None
+        return None, "Room not found."
     if not verify_password(password, room["password_hash"]):
-        return None, "Incorrect password.", None
-    if room["players"]["one"]["name"].strip().lower() == player_name.strip().lower():
-        return None, "Choose a different player name from Player 1.", None
-    if room["players"].get("two") is None:
-        def updater(payload):
-            payload["rooms"][code]["players"]["two"] = {
-                "name": player_name,
-                "joined_at": utc_timestamp(),
-            }
-            return payload
+        return None, "Incorrect password."
+    return room, None
 
-        updated = locked_json_update(current_app.config["ROOMS_FILE"], rooms_default(), updater)
-        return updated["rooms"][code], None, "two"
-    existing_two = room["players"]["two"]["name"]
-    if existing_two == player_name:
-        return room, None, "two"
-    return None, "Room already has two players.", None
+
+def claim_second_player(code: str, player_name: str, player_secret: str) -> tuple[dict[str, Any] | None, str | None]:
+    room = get_room(code)
+    if room is None:
+        return None, "Room not found."
+
+    normalized_name = player_name.strip().lower()
+    if not normalized_name:
+        return None, "Enter a player name."
+    if room["players"]["one"]["name"].strip().lower() == normalized_name:
+        return None, "Choose a different player name from Player 1."
+    if room["players"].get("two") is not None:
+        return None, "Room already has two players."
+
+    def updater(payload):
+        payload["rooms"][code]["players"]["two"] = {
+            "name": player_name,
+            "joined_at": utc_timestamp(),
+            "login_hash": hash_password(player_secret),
+        }
+        payload["rooms"][code].pop("share_password", None)
+        return payload
+
+    updated = locked_json_update(current_app.config["ROOMS_FILE"], rooms_default(), updater)
+    return updated["rooms"][code], None
+
+
+def verify_player_login(room: dict[str, Any], slot: str, player_secret: str) -> bool:
+    player = room["players"].get(slot)
+    if not player:
+        return False
+    login_hash = player.get("login_hash")
+    if not login_hash:
+        return True
+    return verify_password(player_secret, login_hash)
 
 
 def get_room(code: str) -> dict[str, Any] | None:

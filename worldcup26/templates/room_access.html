@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Enter Room {{ room.code }} | FIFA 26 Duel{% endblock %}
+{% block content %}
+  <section class="panel rules-panel">
+    <p class="eyebrow">Room {{ room.code }}</p>
+    <h1>Choose how to enter the duel.</h1>
+    <p class="hero-text">
+      Use an existing player button to relogin. If the second slot is still open, enter a new name to claim it.
+    </p>
+
+    <section class="form-grid">
+      <article class="panel form-panel">
+        <h2>Relogin</h2>
+        <form method="post" action="{{ url_for('main.room_relogin', code=room.code, slot='one') }}">
+          <label>
+            {{ room.players.one.name }}'s personal login password
+            <input name="player_secret" type="password" placeholder="Enter password" minlength="4" {% if room.players.one.login_hash is defined %}required{% endif %}>
+          </label>
+          <button class="button button-secondary access-button" type="submit">Continue as {{ room.players.one.name }}</button>
+        </form>
+        {% if room.players.two %}
+          <form method="post" action="{{ url_for('main.room_relogin', code=room.code, slot='two') }}">
+            <label>
+              {{ room.players.two.name }}'s personal login password
+              <input name="player_secret" type="password" placeholder="Enter password" minlength="4" {% if room.players.two.login_hash is defined %}required{% endif %}>
+            </label>
+            <button class="button button-secondary access-button" type="submit">Continue as {{ room.players.two.name }}</button>
+          </form>
+        {% else %}
+          <p class="form-note">Player 2 has not joined yet.</p>
+        {% endif %}
+      </article>
+
+      <form class="panel form-panel" method="post" action="{{ url_for('main.room_join_new_player', code=room.code) }}">
+        <h2>Join as Player 2</h2>
+        {% if room.players.two %}
+          <p class="form-note">This room already has two players. Use the relogin buttons instead.</p>
+          <button class="button button-primary" type="submit" disabled>Join as New Player</button>
+        {% else %}
+          <label>
+            New player name
+            <input name="player_name" placeholder="Player 2" required>
+          </label>
+          <label>
+            Personal login password
+            <input name="player_secret" type="password" placeholder="Only for your own profile" minlength="4" required>
+          </label>
+          <p class="form-note">Set your own password so nobody else can open your player profile with only the room access details.</p>
+          <button class="button button-primary" type="submit">Join as New Player</button>
+        {% endif %}
+      </form>
+    </section>
+  </section>
+{% endblock %}

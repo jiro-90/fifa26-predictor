@@ -57,7 +57,7 @@ def score_group_prediction(
 ) -> dict[str, Any]:
     if not predicted_order:
         return {"total": 0, "breakdown": ["No group prediction submitted"]}
-    if not group_complete(group.get("id"), matches):
+    if not group.get("actual_positions") and not group_complete(group.get("id"), matches):
         return {"total": 0, "breakdown": ["Group not finished yet"]}
 
     actual_order = actual_group_order(group, matches, teams)

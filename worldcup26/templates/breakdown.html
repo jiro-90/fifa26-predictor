@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Points Breakdown | Room {{ room.code }}{% endblock %}
+{% block content %}
+  <section class="room-header">
+    <div>
+      <p class="eyebrow">Room {{ room.code }}</p>
+      <h1>Points breakdown.</h1>
+      <p class="hero-text">See exactly where every point came from without digging through the full prediction page.</p>
+    </div>
+    <div class="hero-actions">
+      <a class="button button-secondary" href="{{ url_for('main.room', code=room.code) }}">Back to Room</a>
+    </div>
+  </section>
+
+  <section class="panel jump-panel">
+    <div class="section-title">
+      <h2>Player Jump</h2>
+      <p>Go straight to a player, then open only the sections you want.</p>
+    </div>
+    <nav class="jump-links">
+      {% for slot, card in score_entries %}
+        <a href="#{{ slot }}">{{ card.name }}</a>
+      {% endfor %}
+    </nav>
+  </section>
+
+  <div class="section-stack">
+    {% for slot, card in score_entries %}
+      <section class="panel breakdown-page anchor-target" id="{{ slot }}">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">{{ slot|title }}</p>
+            <h2>{{ card.name }}</h2>
+          </div>
+          <strong class="breakdown-total">{{ card.total }} pts</strong>
+        </div>
+
+        <div class="breakdown-summary-grid">
+          <article class="score-tile">
+            <span>Total</span>
+            <strong>{{ card.total }}</strong>
+            <small>All predictions</small>
+          </article>
+          <article class="score-tile">
+            <span>Group Picks</span>
+            <strong>{{ card.group_total }}</strong>
+            <small>{{ card.group_scored|length }} scoring groups</small>
+          </article>
+          <article class="score-tile">
+            <span>Match Picks</span>
+            <strong>{{ card.match_total }}</strong>
+            <small>{{ card.match_scored|length }} scoring matches</small>
+          </article>
+        </div>
+
+        <div class="breakdown-page-grid">
+          <article class="breakdown-column">
+            <div class="section-title">
+              <h3>Group Picks</h3>
+              <span>{{ card.groups|length }} groups</span>
+            </div>
+            <div class="section-stack" data-accordion>
+              {% for item in card.groups %}
+                <details class="breakdown-item">
+                  <summary>
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.total }} pts</strong>
+                  </summary>
+                  <ul>
+                    {% for line in item.breakdown %}
+                      <li>{{ line }}</li>
+                    {% endfor %}
+                  </ul>
+                </details>
+              {% endfor %}
+            </div>
+          </article>
+
+          <article class="breakdown-column">
+            <div class="section-title">
+              <h3>Match Picks</h3>
+              <span>{{ card.matches|length }} matches</span>
+            </div>
+            <div class="section-stack" data-accordion>
+              {% for item in card.matches %}
+                <details class="breakdown-item">
+                  <summary>
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.total }} pts</strong>
+                  </summary>
+                  <ul>
+                    {% for line in item.breakdown %}
+                      <li>{{ line }}</li>
+                    {% endfor %}
+                  </ul>
+                </details>
+              {% endfor %}
+            </div>
+          </article>
+        </div>
+      </section>
+    {% endfor %}
+  </div>
+{% endblock %}

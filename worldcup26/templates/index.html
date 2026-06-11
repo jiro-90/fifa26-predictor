@@ -6,19 +6,19 @@
       <p class="eyebrow">Two Players. One Bragging Right.</p>
       <h1>Make World Cup score picks, sort the groups, and let the site keep score.</h1>
       <p class="hero-text">
-        Built for a simple cPanel Python deployment: file-based storage, private room code, room password,
-        match locks at kick-off, and automatic score updates whenever results are synced.
+        Create a private room, share the code and password, lock in your predictions before kick-off,
+        and track the battle as points update through the tournament.
       </p>
       <div class="hero-actions">
-        <a class="button button-primary" href="#create-room">Create a Room</a>
-        <a class="button button-secondary" href="#join-room">Join a Room</a>
+        <button class="button button-primary" type="button" data-open-dialog="create-room-dialog">Create a Room</button>
+        <button class="button button-secondary" type="button" data-open-dialog="join-room-dialog">Join a Room</button>
       </div>
     </div>
     <div class="hero-panel">
       <img src="{{ url_for('static', filename='hero-ball.svg') }}" alt="Tournament artwork">
       <div class="hero-note">
-        <strong>Live-friendly setup</strong>
-        <span>Use a cPanel cron job every 5 minutes to run the sync script.</span>
+        <strong>Private duel</strong>
+        <span>Two players. One room. Every point counts.</span>
       </div>
     </div>
   </section>
@@ -29,40 +29,51 @@
       <p>Create a room, share the code and password, then each player submits match scores and group standings.</p>
     </article>
     <article class="info-card">
-      <h2>Scoring Engine</h2>
-      <p>Exact team score: 1 point each. Correct match result: 1 more. Group table picks score 3 or 1 based on position accuracy.</p>
-    </article>
-    <article class="info-card">
-      <h2>No Database Needed</h2>
-      <p>The app keeps room and prediction data in JSON files, which makes deployment easier on basic shared hosting.</p>
+      <h2>Built for Rivalry</h2>
+      <p>Your opponent's picks stay hidden until the relevant match or group locks, so nobody gets a free edge.</p>
     </article>
   </section>
 
-  <section class="form-grid">
-    <form id="create-room" class="panel form-panel" method="post" action="{{ url_for('main.create_room_view') }}">
-      <h2>Create Room</h2>
+  <dialog class="home-dialog" id="create-room-dialog">
+    <div class="dialog-top">
+      <div>
+        <p class="eyebrow">Create Room</p>
+        <h2>Start the duel.</h2>
+      </div>
+      <button class="dialog-close" type="button" data-close-dialog aria-label="Close create room dialog">&times;</button>
+    </div>
+    <form class="form-panel dialog-form" method="post" action="{{ url_for('main.create_room_view') }}">
       <label>
         Your name
         <input name="player_name" placeholder="Player 1" required>
       </label>
+      <label>
+        Personal login password
+        <input name="player_secret" type="password" placeholder="Only for your own profile" minlength="4" required>
+      </label>
+      <p class="form-note">Use this when you return to your own player profile later.</p>
       <button class="button button-primary" type="submit">Create Duel Room</button>
     </form>
+  </dialog>
 
-    <form id="join-room" class="panel form-panel" method="post" action="{{ url_for('main.join_room_view') }}">
-      <h2>Join Room</h2>
+  <dialog class="home-dialog" id="join-room-dialog" {% if request.args.get('code') %}data-auto-open="true"{% endif %}>
+    <div class="dialog-top">
+      <div>
+        <p class="eyebrow">Join Room</p>
+        <h2>Enter the room.</h2>
+      </div>
+      <button class="dialog-close" type="button" data-close-dialog aria-label="Close join room dialog">&times;</button>
+    </div>
+    <form class="form-panel dialog-form" method="post" action="{{ url_for('main.join_room_view') }}">
       <label>
         Room code
-        <input name="code" placeholder="AB12CD" required>
+        <input name="code" placeholder="AB12CD" value="{{ request.args.get('code', '') }}" required>
       </label>
       <label>
         Room password
         <input name="password" placeholder="Shared password" required>
       </label>
-      <label>
-        Your name
-        <input name="player_name" placeholder="Player 2" required>
-      </label>
-      <button class="button button-primary" type="submit">Join Duel</button>
+      <button class="button button-primary" type="submit">Continue</button>
     </form>
-  </section>
+  </dialog>
 {% endblock %}

@@ -48,3 +48,77 @@ function bindSortableList(list) {
 }
 
 document.querySelectorAll("[data-sortable]").forEach(bindSortableList);
+
+document.querySelectorAll("[data-open-dialog]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById(button.dataset.openDialog);
+    if (dialog?.showModal) {
+      dialog.showModal();
+    }
+  });
+});
+
+document.querySelectorAll("[data-close-dialog]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = button.closest("dialog");
+    dialog?.close();
+  });
+});
+
+document.querySelectorAll("dialog").forEach((dialog) => {
+  dialog.addEventListener("click", (event) => {
+    const rect = dialog.getBoundingClientRect();
+    const inside =
+      rect.top <= event.clientY &&
+      event.clientY <= rect.top + rect.height &&
+      rect.left <= event.clientX &&
+      event.clientX <= rect.left + rect.width;
+    if (!inside) {
+      dialog.close();
+    }
+  });
+});
+
+document.querySelectorAll("dialog[data-auto-open='true']").forEach((dialog) => {
+  if (dialog.showModal) {
+    dialog.showModal();
+  }
+});
+
+document.querySelectorAll("[data-accordion]").forEach((container) => {
+  const items = Array.from(container.querySelectorAll("details"));
+  items.forEach((item) => {
+    item.addEventListener("toggle", () => {
+      if (!item.open) {
+        return;
+      }
+      items.forEach((other) => {
+        if (other !== item) {
+          other.open = false;
+        }
+      });
+    });
+  });
+});
+
+document.querySelectorAll("[data-copy-target]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const target = document.getElementById(button.dataset.copyTarget);
+    if (!target) {
+      return;
+    }
+    const text = "value" in target ? target.value : target.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      const original = button.textContent;
+      button.textContent = "Copied";
+      window.setTimeout(() => {
+        button.textContent = original;
+      }, 1400);
+    } catch {
+      if (target.select) {
+        target.select();
+      }
+    }
+  });
+});

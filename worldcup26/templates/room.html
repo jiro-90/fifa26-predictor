@@ -7,9 +7,27 @@
       <h1>{{ membership.name }} is in the duel.</h1>
       <p class="hero-text">Share the code and password with the second player. Predictions lock automatically at kick-off.</p>
       {% if room_password %}
-        <div class="secret-card">
-          <span>Room password</span>
-          <strong>{{ room_password }}</strong>
+        <div class="invite-stack">
+          <div class="secret-grid">
+            <div class="secret-card">
+              <span>Room code</span>
+              <strong>{{ room.code }}</strong>
+            </div>
+            <div class="secret-card">
+              <span>Room password</span>
+              <strong>{{ room_password }}</strong>
+            </div>
+          </div>
+          <div class="share-card">
+            <span>Share this invite</span>
+            <input id="invite-link" class="share-input" value="{{ invite_link }}" readonly>
+            <button class="button button-secondary button-small" type="button" data-copy-target="invite-link">Copy link</button>
+            <textarea id="invite-text" class="share-text" readonly>Join my FIFA 26 Duel room.
+Link: {{ invite_link }}
+Code: {{ room.code }}
+Password: {{ room_password }}</textarea>
+            <button class="button button-primary button-small" type="button" data-copy-target="invite-text">Copy invite text</button>
+          </div>
         </div>
       {% endif %}
     </div>
@@ -24,180 +42,251 @@
     </div>
   </section>
 
-  <section class="panel leaderboard-panel">
-    <h2>Leaderboard</h2>
-    <div class="leaderboard-table">
-      {% for slot, card in score_entries %}
-        <div class="leader-row">
-          <div>
-            <strong>{{ card.name }}</strong>
-            <span>{{ slot|title }}</span>
+  <section class="panel jump-panel">
+    <div class="section-title">
+      <h2>Quick Jump</h2>
+      <p>Move through the room by phase instead of one long scroll.</p>
+    </div>
+    <nav class="jump-links">
+      <a href="#leaderboard">Leaderboard</a>
+      <a href="#groups">Groups</a>
+      {% if knockout_sections %}
+        <a href="#knockout">Knockout</a>
+      {% endif %}
+      <a href="{{ url_for('main.breakdown', code=room.code) }}">Points Breakdown</a>
+    </nav>
+  </section>
+
+  <div class="left-column room-main">
+    <section class="panel leaderboard-panel anchor-target" id="leaderboard">
+      <div class="section-title">
+        <h2>Leaderboard</h2>
+        <a class="button button-secondary button-small" href="{{ url_for('main.breakdown', code=room.code) }}">Open Points Breakdown</a>
+      </div>
+      <div class="leaderboard-table">
+        {% for slot, card in score_entries %}
+          <div class="leader-row">
+            <div>
+              <strong>{{ card.name }}</strong>
+              <span>{{ slot|title }}</span>
+            </div>
+            <strong>{{ card.total }} pts</strong>
           </div>
-          <strong>{{ card.total }} pts</strong>
-        </div>
-      {% endfor %}
-    </div>
-  </section>
-
-  <section class="layout-grid">
-    <div class="left-column">
-      <section class="panel">
-        <div class="section-title">
-          <h2>Group Rankings</h2>
-          <p>Drag teams into your final order, then save each group.</p>
-        </div>
-        <div class="group-grid">
-          {% for group in group_cards %}
-            <form class="group-card" method="post" action="{{ url_for('main.save_group', code=room.code, group_id=group.id) }}">
-              <div class="group-card-top">
-                <div>
-                  <p class="eyebrow">{{ group.name }}</p>
-                  <strong>{{ "Locked" if group.locked else "Open" }}</strong>
-                </div>
-                <button class="button button-small" type="submit" {% if group.locked %}disabled{% endif %}>Save</button>
-              </div>
-              <input type="hidden" name="team_order" value='{{ group.ordered_teams | map(attribute="id") | list | tojson }}'>
-              <ul class="sortable-list" data-sortable {% if group.locked %}data-locked="true"{% endif %}>
-                {% for team in group.ordered_teams %}
-                  <li class="sortable-item" draggable="{{ 'false' if group.locked else 'true' }}" data-team-id="{{ team.id }}">
-                    <span class="position-badge">{{ loop.index }}</span>
-                    <img src="https://flagcdn.com/w80/{{ team.flag }}.png" alt="{{ team.name }} flag">
-                    <span>{{ team.name }}</span>
-                  </li>
-                {% endfor %}
-              </ul>
-              <div class="opponent-panel">
-                <strong>Opponent group pick</strong>
-                {% if not opponent %}
-                  <span>Waiting for Player 2 to join.</span>
-                {% elif not group.locked %}
-                  <span>Hidden until the first match in this group kicks off.</span>
-                {% elif group.opponent_teams %}
-                  <ul class="opponent-list">
-                    {% for team in group.opponent_teams %}
-                      <li>
-                        <span>{{ loop.index }}.</span>
-                        <span>{{ team.name }}</span>
-                      </li>
-                    {% endfor %}
-                  </ul>
-                {% else %}
-                  <span>No opponent prediction submitted.</span>
-                {% endif %}
-              </div>
-            </form>
-          {% endfor %}
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="section-title">
-          <h2>Matches</h2>
-          <p>Predict scores before kick-off. Finished matches display the real score and your points breakdown.</p>
-        </div>
-        <div class="matches-list">
-          {% for match in matches %}
-            <article class="match-card">
-              <div class="match-meta">
-                <span>{{ match.stage }}{% if match.group_id %} · Group {{ match.group_id }}{% endif %}</span>
-                <span>{{ match.kickoff_label }}</span>
-              </div>
-              <div class="teams-line">
-                <div class="team-chip">
-                  {% if match.home_team.flag %}
-                    <img src="https://flagcdn.com/w80/{{ match.home_team.flag }}.png" alt="{{ match.home_team.name }} flag">
-                  {% else %}
-                    <span class="team-avatar">?</span>
-                  {% endif %}
-                  <span>{{ match.home_team.name }}</span>
-                </div>
-                <strong>vs</strong>
-                <div class="team-chip">
-                  {% if match.away_team.flag %}
-                    <img src="https://flagcdn.com/w80/{{ match.away_team.flag }}.png" alt="{{ match.away_team.name }} flag">
-                  {% else %}
-                    <span class="team-avatar">?</span>
-                  {% endif %}
-                  <span>{{ match.away_team.name }}</span>
-                </div>
-              </div>
-              <form class="score-form" method="post" action="{{ url_for('main.save_match', code=room.code, match_id=match.id) }}">
-                <input type="number" min="0" name="home" value="{{ match.prediction.home if match.prediction.home is not none else '' }}" {% if match.locked or not match.teams_known %}disabled{% endif %} required>
-                <span>-</span>
-                <input type="number" min="0" name="away" value="{{ match.prediction.away if match.prediction.away is not none else '' }}" {% if match.locked or not match.teams_known %}disabled{% endif %} required>
-                <button class="button button-small" type="submit" {% if match.locked or not match.teams_known %}disabled{% endif %}>Save</button>
-              </form>
-              <div class="match-result-row">
-                <span>
-                  {% if not match.teams_known %}
-                    Waiting for teams to be decided
-                  {% elif match.locked %}
-                    Prediction locked
-                  {% else %}
-                    Open for picks
-                  {% endif %}
-                </span>
-                {% if match.status == "FINISHED" %}
-                  <strong>Final: {{ match.home_score }} - {{ match.away_score }}</strong>
-                {% else %}
-                  <strong>{{ match.status }}</strong>
-                {% endif %}
-              </div>
-              <div class="opponent-panel">
-                <strong>Opponent match pick</strong>
-                {% if not opponent %}
-                  <span>Waiting for Player 2 to join.</span>
-                {% elif not match.locked %}
-                  <span>Hidden until kick-off.</span>
-                {% elif match.opponent_prediction %}
-                  <span>{{ match.opponent_prediction.home }} - {{ match.opponent_prediction.away }}</span>
-                {% else %}
-                  <span>No opponent prediction submitted.</span>
-                {% endif %}
-              </div>
-            </article>
-          {% endfor %}
-        </div>
-      </section>
-    </div>
-
-    <aside class="right-column">
-      <section class="panel breakdown-panel">
-        <h2>Points Breakdown</h2>
-        {% for slot, card in scores.items() %}
-          <article class="breakdown-card">
-            <h3>{{ card.name }}</h3>
-
-            <div class="breakdown-group">
-              <strong>Group picks</strong>
-              {% for item in card.groups %}
-                <details>
-                  <summary>{{ item.label }} · {{ item.total }} pts</summary>
-                  <ul>
-                    {% for line in item.breakdown %}
-                      <li>{{ line }}</li>
-                    {% endfor %}
-                  </ul>
-                </details>
-              {% endfor %}
-            </div>
-
-            <div class="breakdown-group">
-              <strong>Match picks</strong>
-              {% for item in card.matches %}
-                <details>
-                  <summary>{{ item.label }} · {{ item.total }} pts</summary>
-                  <ul>
-                    {% for line in item.breakdown %}
-                      <li>{{ line }}</li>
-                    {% endfor %}
-                  </ul>
-                </details>
-              {% endfor %}
-            </div>
-          </article>
         {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel anchor-target" id="groups">
+      <div class="section-title">
+        <h2>Groups</h2>
+        <p>Each group keeps its ranking picks and group-stage fixtures together.</p>
+      </div>
+      <div class="section-stack" data-accordion>
+        {% for section in group_sections %}
+          {% set group = section.group %}
+          <details class="group-section">
+            <summary class="group-summary">
+              <div>
+                <p class="eyebrow">{{ group.name }}</p>
+                <strong>{{ "Locked" if group.locked else "Open" }}</strong>
+              </div>
+              <span>{{ section.matches|length }} matches</span>
+            </summary>
+
+            <div class="group-section-body">
+              <form class="group-card grouped-card" method="post" action="{{ url_for('main.save_group', code=room.code, group_id=group.id) }}">
+                <div class="group-card-top">
+                  <div>
+                    <strong>Your final order</strong>
+                    <p class="form-note">Drag teams into position, then save this group.</p>
+                  </div>
+                  <button class="button button-small" type="submit" {% if group.locked %}disabled{% endif %}>Save</button>
+                </div>
+                <input type="hidden" name="team_order" value='{{ group.ordered_teams | map(attribute="id") | list | tojson }}'>
+                <ul class="sortable-list" data-sortable {% if group.locked %}data-locked="true"{% endif %}>
+                  {% for team in group.ordered_teams %}
+                    <li class="sortable-item" draggable="{{ 'false' if group.locked else 'true' }}" data-team-id="{{ team.id }}">
+                      <span class="position-badge">{{ loop.index }}</span>
+                      <img src="https://flagcdn.com/w80/{{ team.flag }}.png" alt="{{ team.name }} flag">
+                      <span>{{ team.name }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+                <div class="opponent-panel">
+                  <strong>Opponent group pick</strong>
+                  {% if not opponent %}
+                    <span>Waiting for Player 2 to join.</span>
+                  {% elif not group.locked %}
+                    <span>Hidden until the first match in this group kicks off.</span>
+                  {% elif group.opponent_teams %}
+                    <ul class="opponent-list">
+                      {% for team in group.opponent_teams %}
+                        <li>
+                          <span>{{ loop.index }}.</span>
+                          <span>{{ team.name }}</span>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <span>No opponent prediction submitted.</span>
+                  {% endif %}
+                </div>
+              </form>
+
+              <div class="match-grid">
+                {% for match in section.matches %}
+                  <article class="match-card">
+                    <div class="match-meta">
+                      <span>Group {{ group.id }}</span>
+                      <span>{{ match.kickoff_label }}</span>
+                    </div>
+                    <div class="teams-line">
+                      <div class="team-chip">
+                        {% if match.home_team.flag %}
+                          <img src="https://flagcdn.com/w80/{{ match.home_team.flag }}.png" alt="{{ match.home_team.name }} flag">
+                        {% else %}
+                          <span class="team-avatar">?</span>
+                        {% endif %}
+                        <span>{{ match.home_team.name }}</span>
+                      </div>
+                      <strong>vs</strong>
+                      <div class="team-chip">
+                        {% if match.away_team.flag %}
+                          <img src="https://flagcdn.com/w80/{{ match.away_team.flag }}.png" alt="{{ match.away_team.name }} flag">
+                        {% else %}
+                          <span class="team-avatar">?</span>
+                        {% endif %}
+                        <span>{{ match.away_team.name }}</span>
+                      </div>
+                    </div>
+                    <form class="score-form" method="post" action="{{ url_for('main.save_match', code=room.code, match_id=match.id) }}">
+                      <input type="number" min="0" name="home" value="{{ match.prediction.home if match.prediction.home is not none else '' }}" {% if match.locked or not match.teams_known %}disabled{% endif %} required>
+                      <span>-</span>
+                      <input type="number" min="0" name="away" value="{{ match.prediction.away if match.prediction.away is not none else '' }}" {% if match.locked or not match.teams_known %}disabled{% endif %} required>
+                      <button class="button button-small" type="submit" {% if match.locked or not match.teams_known %}disabled{% endif %}>Save</button>
+                    </form>
+                    <div class="match-result-row">
+                      <span>
+                        {% if not match.teams_known %}
+                          Waiting for teams to be decided
+                        {% elif match.locked %}
+                          Prediction locked
+                        {% else %}
+                          Open for picks
+                        {% endif %}
+                      </span>
+                      {% if match.status == "FINISHED" %}
+                        <strong>Final: {{ match.home_score }} - {{ match.away_score }}</strong>
+                      {% else %}
+                        <strong>{{ match.status }}</strong>
+                      {% endif %}
+                    </div>
+                    <div class="opponent-panel">
+                      <strong>Opponent match pick</strong>
+                      {% if not opponent %}
+                        <span>Waiting for Player 2 to join.</span>
+                      {% elif not match.locked %}
+                        <span>Hidden until kick-off.</span>
+                      {% elif match.opponent_prediction %}
+                        <span>{{ match.opponent_prediction.home }} - {{ match.opponent_prediction.away }}</span>
+                      {% else %}
+                        <span>No opponent prediction submitted.</span>
+                      {% endif %}
+                    </div>
+                  </article>
+                {% endfor %}
+              </div>
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if knockout_sections %}
+      <section class="panel anchor-target" id="knockout">
+        <div class="section-title">
+          <h2>Knockout Rounds</h2>
+          <p>Knockout fixtures are grouped by tournament stage for easier navigation.</p>
+        </div>
+        <div class="section-stack" data-accordion>
+          {% for section in knockout_sections %}
+            <details class="group-section">
+              <summary class="group-summary">
+                <div>
+                  <p class="eyebrow">Knockout</p>
+                  <strong>{{ section.label }}</strong>
+                </div>
+                <span>{{ section.matches|length }} matches</span>
+              </summary>
+              <div class="group-section-body">
+                <div class="match-grid">
+                  {% for match in section.matches %}
+                    <article class="match-card">
+                      <div class="match-meta">
+                        <span>{{ section.label }}</span>
+                        <span>{{ match.kickoff_label }}</span>
+                      </div>
+                      <div class="teams-line">
+                        <div class="team-chip">
+                          {% if match.home_team.flag %}
+                            <img src="https://flagcdn.com/w80/{{ match.home_team.flag }}.png" alt="{{ match.home_team.name }} flag">
+                          {% else %}
+                            <span class="team-avatar">?</span>
+                          {% endif %}
+                          <span>{{ match.home_team.name }}</span>
+                        </div>
+                        <strong>vs</strong>
+                        <div class="team-chip">
+                          {% if match.away_team.flag %}
+                            <img src="https://flagcdn.com/w80/{{ match.away_team.flag }}.png" alt="{{ match.away_team.name }} flag">
+                          {% else %}
+                            <span class="team-avatar">?</span>
+                          {% endif %}
+                          <span>{{ match.away_team.name }}</span>
+                        </div>
+                      </div>
+                      <form class="score-form" method="post" action="{{ url_for('main.save_match', code=room.code, match_id=match.id) }}">
+                        <input type="number" min="0" name="home" value="{{ match.prediction.home if match.prediction.home is not none else '' }}" {% if match.locked or not match.teams_known %}disabled{% endif %} required>
+                        <span>-</span>
+                        <input type="number" min="0" name="away" value="{{ match.prediction.away if match.prediction.away is not none else '' }}" {% if match.locked or not match.teams_known %}disabled{% endif %} required>
+                        <button class="button button-small" type="submit" {% if match.locked or not match.teams_known %}disabled{% endif %}>Save</button>
+                      </form>
+                      <div class="match-result-row">
+                        <span>
+                          {% if not match.teams_known %}
+                            Waiting for teams to be decided
+                          {% elif match.locked %}
+                            Prediction locked
+                          {% else %}
+                            Open for picks
+                          {% endif %}
+                        </span>
+                        {% if match.status == "FINISHED" %}
+                          <strong>Final: {{ match.home_score }} - {{ match.away_score }}</strong>
+                        {% else %}
+                          <strong>{{ match.status }}</strong>
+                        {% endif %}
+                      </div>
+                      <div class="opponent-panel">
+                        <strong>Opponent match pick</strong>
+                        {% if not opponent %}
+                          <span>Waiting for Player 2 to join.</span>
+                        {% elif not match.locked %}
+                          <span>Hidden until kick-off.</span>
+                        {% elif match.opponent_prediction %}
+                          <span>{{ match.opponent_prediction.home }} - {{ match.opponent_prediction.away }}</span>
+                        {% else %}
+                          <span>No opponent prediction submitted.</span>
+                        {% endif %}
+                      </div>
+                    </article>
+                  {% endfor %}
+                </div>
+              </div>
+            </details>
+          {% endfor %}
+        </div>
       </section>
-    </aside>
-  </section>
+    {% endif %}
+  </div>
 {% endblock %}

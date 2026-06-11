@@ -58,6 +58,23 @@ class GroupScoringTests(unittest.TestCase):
         scored = score_group_prediction(["alpha", "bravo", "charlie", "delta"], group, matches, teams)
         self.assertEqual(scored["total"], 0)
 
+    def test_allows_manual_actual_positions_without_finished_matches(self):
+        group = {
+            "id": "A",
+            "name": "Group A",
+            "actual_positions": ["alpha", "bravo", "charlie", "delta"],
+            "teams": [
+                {"id": "alpha", "name": "Alpha"},
+                {"id": "bravo", "name": "Bravo"},
+                {"id": "charlie", "name": "Charlie"},
+                {"id": "delta", "name": "Delta"},
+            ],
+        }
+        teams = {team["id"]: team for team in group["teams"]}
+        matches = [{"group_id": "A", "status": "SCHEDULED", "home_team_id": "alpha", "away_team_id": "bravo", "home_score": None, "away_score": None}]
+        scored = score_group_prediction(["alpha", "bravo", "delta", "charlie"], group, matches, teams)
+        self.assertEqual(scored["total"], 8)
+
 
 if __name__ == "__main__":
     unittest.main()
