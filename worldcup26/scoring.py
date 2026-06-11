@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .tournament import actual_group_order, group_complete, resolve_team
+from .tournament import actual_group_order, group_complete, group_locked, match_locked, resolve_team
 
 
 def result_code(home_goals: int | None, away_goals: int | None) -> str | None:
@@ -18,15 +18,17 @@ def result_code(home_goals: int | None, away_goals: int | None) -> str | None:
 def score_match_prediction(prediction: dict[str, Any], match: dict[str, Any]) -> dict[str, Any]:
     breakdown = []
     total = 0
+    predicted_home = prediction.get("home")
+    predicted_away = prediction.get("away")
+    if predicted_home is None or predicted_away is None:
+        if match_locked(match):
+            return {"total": -1, "breakdown": ["Missed match prediction deadline: -1"]}
+        return {"total": 0, "breakdown": ["No prediction submitted yet"]}
     if match.get("status") != "FINISHED":
         return {"total": 0, "breakdown": ["Pending result"]}
 
     actual_home = match.get("home_score")
     actual_away = match.get("away_score")
-    predicted_home = prediction.get("home")
-    predicted_away = prediction.get("away")
-    if predicted_home is None or predicted_away is None:
-        return {"total": 0, "breakdown": ["No prediction submitted"]}
 
     if predicted_home == actual_home:
         total += 1
@@ -56,7 +58,9 @@ def score_group_prediction(
     teams: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     if not predicted_order:
-        return {"total": 0, "breakdown": ["No group prediction submitted"]}
+        if group_locked(group.get("id"), matches):
+            return {"total": -1, "breakdown": ["Missed group prediction deadline: -1"]}
+        return {"total": 0, "breakdown": ["No group prediction submitted yet"]}
     if not group.get("actual_positions") and not group_complete(group.get("id"), matches):
         return {"total": 0, "breakdown": ["Group not finished yet"]}
 

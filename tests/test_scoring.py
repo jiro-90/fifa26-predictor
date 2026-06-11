@@ -16,6 +16,16 @@ class MatchScoringTests(unittest.TestCase):
         scored = score_match_prediction(prediction, match)
         self.assertEqual(scored["total"], 0)
 
+    def test_missed_match_prediction_after_kickoff_is_minus_one(self):
+        match = {
+            "status": "SCHEDULED",
+            "kickoff_utc": "2000-06-12T18:00:00Z",
+            "home_score": None,
+            "away_score": None,
+        }
+        scored = score_match_prediction({}, match)
+        self.assertEqual(scored["total"], -1)
+
 
 class GroupScoringTests(unittest.TestCase):
     def test_awards_exact_and_off_by_one_points(self):
@@ -57,6 +67,32 @@ class GroupScoringTests(unittest.TestCase):
         matches = [{"group_id": "A", "status": "SCHEDULED", "home_team_id": "alpha", "away_team_id": "bravo", "home_score": None, "away_score": None}]
         scored = score_group_prediction(["alpha", "bravo", "charlie", "delta"], group, matches, teams)
         self.assertEqual(scored["total"], 0)
+
+    def test_missed_group_prediction_after_first_kickoff_is_minus_one(self):
+        group = {
+            "id": "A",
+            "name": "Group A",
+            "teams": [
+                {"id": "alpha", "name": "Alpha"},
+                {"id": "bravo", "name": "Bravo"},
+                {"id": "charlie", "name": "Charlie"},
+                {"id": "delta", "name": "Delta"},
+            ],
+        }
+        teams = {team["id"]: team for team in group["teams"]}
+        matches = [
+            {
+                "group_id": "A",
+                "status": "SCHEDULED",
+                "kickoff_utc": "2000-06-12T18:00:00Z",
+                "home_team_id": "alpha",
+                "away_team_id": "bravo",
+                "home_score": None,
+                "away_score": None,
+            }
+        ]
+        scored = score_group_prediction(None, group, matches, teams)
+        self.assertEqual(scored["total"], -1)
 
     def test_allows_manual_actual_positions_without_finished_matches(self):
         group = {
