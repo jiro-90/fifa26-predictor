@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Rules | FIFA 26 Duel{% endblock %}
+{% block content %}
+  <section class="panel rules-panel">
+    <p class="eyebrow">Rules</p>
+    <h1>Points, locks, and tie-ins</h1>
+
+    <div class="rules-list">
+      <article>
+        <h2>Group standings</h2>
+        <p>Predict the final order for every team in the group.</p>
+        <p>Exact final position: 3 points.</p>
+        <p>Off by one position: 1 point.</p>
+        <p>Anything else: 0 points.</p>
+        <p>The group locks when the first match in that group kicks off.</p>
+      </article>
+
+      <article>
+        <h2>Match score predictions</h2>
+        <p>Predict the score for each match before kick-off.</p>
+        <p>Exact home-team goals: 1 point.</p>
+        <p>Exact away-team goals: 1 point.</p>
+        <p>Correct result type (home win, draw, away win): 1 point.</p>
+        <p>Maximum per match: 3 points.</p>
+      </article>
+
+      <article>
+        <h2>Automatic updates</h2>
+        <p>Room totals update automatically after results are synced.</p>
+        <p>On cPanel, the clean setup is a cron job that runs the sync script every 5 minutes.</p>
+      </article>
+
+      <article>
+        <h2>Important note on group tables</h2>
+        <p>
+          If your data source does not provide official standings tie-breaks, the app falls back to points,
+          goal difference, goals scored, then alphabetical order. You can override final group positions in
+          the tournament data file if needed.
+        </p>
+      </article>
+    </div>
+  </section>
+{% endblock %}

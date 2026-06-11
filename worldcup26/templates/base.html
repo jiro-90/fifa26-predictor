@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}FIFA 26 Duel{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="{{ url_for('main.index') }}">
+          <img src="{{ url_for('static', filename='hero-crest.svg') }}" alt="FIFA 26 Duel crest">
+          <span>FIFA 26 Duel</span>
+        </a>
+        <nav class="topnav">
+          <a href="{{ url_for('main.index') }}">Home</a>
+          <a href="{{ url_for('main.rules') }}">Rules</a>
+        </nav>
+      </header>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for message in messages %}
+              <div class="flash">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <main>
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

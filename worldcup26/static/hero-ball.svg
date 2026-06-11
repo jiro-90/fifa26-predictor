@@ -1,0 +1,13 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="48" fill="#17315F"/>
+  <circle cx="816" cy="391" r="287" fill="#FFCA58"/>
+  <circle cx="816" cy="391" r="214" fill="#FFF7E5"/>
+  <path d="M292 657C434 602 450 424 595 388C746 350 856 526 1006 500" stroke="#3DD2B2" stroke-width="31" stroke-linecap="round"/>
+  <path d="M221 278C330 307 384 187 504 169C647 149 714 285 839 295" stroke="#FF7D3A" stroke-width="26" stroke-linecap="round"/>
+  <path d="M789 213L861 258L845 340H762L742 259L789 213Z" fill="#17315F"/>
+  <path d="M711 365L775 410L760 490H676L648 416L711 365Z" fill="#17315F"/>
+  <path d="M866 365L946 420L929 506H833L804 420L866 365Z" fill="#17315F"/>
+  <path d="M787 516L860 570L840 653H754L729 571L787 516Z" fill="#17315F"/>
+  <text x="121" y="682" fill="#FFF7E5" font-family="Bebas Neue, Arial, sans-serif" font-size="124" letter-spacing="8">FIFA 26</text>
+  <text x="123" y="770" fill="#FFCA58" font-family="Bebas Neue, Arial, sans-serif" font-size="72" letter-spacing="8">PREDICTION DUEL</text>
+</svg>
