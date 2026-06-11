@@ -496,6 +496,21 @@ input {
   background: linear-gradient(180deg, rgba(23, 49, 95, 0.08) 0%, rgba(255, 255, 255, 0.58) 100%);
 }
 
+.group-section.is-section-saved {
+  border-color: rgba(0, 132, 109, 0.34);
+  background: linear-gradient(180deg, rgba(11, 130, 108, 0.16) 0%, rgba(255, 255, 255, 0.62) 100%);
+}
+
+.group-section.is-section-dirty {
+  border-color: rgba(255, 167, 38, 0.34);
+  background: linear-gradient(180deg, rgba(255, 202, 88, 0.22) 0%, rgba(255, 255, 255, 0.62) 100%);
+}
+
+.group-section.is-section-missed {
+  border-color: rgba(185, 49, 25, 0.28);
+  background: linear-gradient(180deg, rgba(228, 77, 46, 0.15) 0%, rgba(255, 255, 255, 0.62) 100%);
+}
+
 .group-summary {
   list-style: none;
   display: flex;
@@ -518,6 +533,18 @@ input {
 
 .group-section.is-locked .group-summary {
   background: linear-gradient(90deg, rgba(23, 49, 95, 0.12) 0%, rgba(255, 255, 255, 0.55) 100%);
+}
+
+.group-section.is-section-saved .group-summary {
+  background: linear-gradient(90deg, rgba(11, 130, 108, 0.18) 0%, rgba(255, 255, 255, 0.58) 100%);
+}
+
+.group-section.is-section-dirty .group-summary {
+  background: linear-gradient(90deg, rgba(255, 202, 88, 0.24) 0%, rgba(255, 255, 255, 0.58) 100%);
+}
+
+.group-section.is-section-missed .group-summary {
+  background: linear-gradient(90deg, rgba(228, 77, 46, 0.18) 0%, rgba(255, 255, 255, 0.58) 100%);
 }
 
 .group-section-body {

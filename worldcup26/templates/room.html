@@ -102,7 +102,7 @@ Password: {{ room_password }}</textarea>
       <div class="section-stack" data-accordion>
         {% for section in group_sections %}
           {% set group = section.group %}
-          <details class="group-section{% if group.locked %} is-locked{% endif %}" data-persist-id="group-{{ group.id }}">
+          <details class="group-section{% if group.locked %} is-locked{% endif %}{% if section.all_saved %} is-section-saved{% endif %}" data-persist-id="group-{{ group.id }}" data-section-state>
             <summary class="group-summary">
               <div>
                 <p class="eyebrow">{{ group.name }}</p>
@@ -301,7 +301,7 @@ Password: {{ room_password }}</textarea>
         </div>
       <div class="section-stack" data-accordion>
         {% for section in knockout_sections %}
-            <details class="group-section{% if section.locked %} is-locked{% endif %}" data-persist-id="stage-{{ section.stage }}">
+            <details class="group-section{% if section.locked %} is-locked{% endif %}{% if section.all_saved %} is-section-saved{% endif %}" data-persist-id="stage-{{ section.stage }}" data-section-state>
               <summary class="group-summary">
                 <div>
                   <p class="eyebrow">Knockout</p>

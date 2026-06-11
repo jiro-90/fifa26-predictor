@@ -272,6 +272,7 @@ def room(code):
                 },
                 "matches": [],
                 "score_cards": group_score_cards,
+                "all_saved": False,
             }
         )
         matches_by_group[group["id"]] = group_sections[-1]["matches"]
@@ -283,12 +284,24 @@ def room(code):
         elif match.get("stage") in knockout_sections_lookup:
             knockout_sections_lookup[match["stage"]]["matches"].append(card)
 
+    for section in group_sections:
+        group_saved = bool(section["group"]["saved_order"])
+        matches_saved = all(
+            match["prediction"].get("home") is not None and match["prediction"].get("away") is not None
+            for match in section["matches"]
+        )
+        section["all_saved"] = group_saved and matches_saved
+
     knockout_sections = []
     for stage, _label in KNOCKOUT_STAGE_ORDER:
         section = knockout_sections_lookup[stage]
         if not section["matches"]:
             continue
         section["locked"] = all(match["locked"] for match in section["matches"])
+        section["all_saved"] = all(
+            match["prediction"].get("home") is not None and match["prediction"].get("away") is not None
+            for match in section["matches"]
+        )
         knockout_sections.append(section)
 
     return render_template(

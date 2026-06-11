@@ -11,6 +11,10 @@ function getPredictionCard(form) {
   return form.matches("[data-card-state]") ? form : form.closest("[data-card-state]");
 }
 
+function getSectionContainer(node) {
+  return node.closest("[data-section-state]");
+}
+
 function readFormState(form) {
   if (form.dataset.saveForm === "group") {
     return form.querySelector('input[name="team_order"]')?.value ?? "";
@@ -51,6 +55,34 @@ function updatePredictionCardState(form) {
   }
 }
 
+function updateSectionState(node) {
+  const section = getSectionContainer(node);
+  if (!section) {
+    return;
+  }
+
+  const cards = Array.from(section.querySelectorAll("[data-card-state]"));
+  section.classList.remove("is-section-saved", "is-section-dirty", "is-section-missed");
+  if (!cards.length) {
+    return;
+  }
+
+  const allSaved = cards.every((card) => card.classList.contains("is-saved"));
+  if (allSaved) {
+    section.classList.add("is-section-saved");
+    return;
+  }
+
+  if (cards.some((card) => card.classList.contains("is-dirty"))) {
+    section.classList.add("is-section-dirty");
+    return;
+  }
+
+  if (cards.some((card) => card.classList.contains("is-missed"))) {
+    section.classList.add("is-section-missed");
+  }
+}
+
 function bindSortableList(list) {
   if (list.dataset.locked === "true") {
     return;
@@ -75,6 +107,7 @@ function bindSortableList(list) {
       }
       if (form) {
         updatePredictionCardState(form);
+        updateSectionState(form);
       }
     });
   });
@@ -122,6 +155,16 @@ function showToast(message, tone = "success") {
 
 function roomStateKey() {
   return `room-ui:${window.location.pathname}`;
+}
+
+function scrollSectionIntoView(item) {
+  const jumpPanel = document.querySelector(".jump-panel");
+  const topOffset = (jumpPanel?.getBoundingClientRect().height || 0) + 24;
+  const targetTop = window.scrollY + item.getBoundingClientRect().top - topOffset;
+  window.scrollTo({
+    top: Math.max(targetTop, 0),
+    behavior: "smooth",
+  });
 }
 
 function persistRoomState() {
@@ -198,6 +241,7 @@ async function submitPredictionForm(form, submitButton) {
     form.dataset.savedState = savedState;
     form.dataset.initialState = savedState;
     updatePredictionCardState(form);
+    updateSectionState(form);
     persistRoomState();
     showToast(payload.message || "Saved.", "success");
   } catch {
@@ -216,11 +260,13 @@ async function submitPredictionForm(form, submitButton) {
 
 function bindPredictionForm(form) {
   updatePredictionCardState(form);
+  updateSectionState(form);
 
   if (form.dataset.saveForm === "match") {
     form.querySelectorAll('input[name="home"], input[name="away"]').forEach((input) => {
       input.addEventListener("input", () => {
         updatePredictionCardState(form);
+        updateSectionState(form);
       });
     });
   }
@@ -285,6 +331,9 @@ document.querySelectorAll("[data-accordion]").forEach((container) => {
           other.open = false;
         }
       });
+      window.requestAnimationFrame(() => {
+        scrollSectionIntoView(item);
+      });
       persistRoomState();
     });
   });
@@ -317,6 +366,10 @@ document.querySelectorAll("details[data-persist-id]").forEach((item) => {
 });
 
 document.querySelectorAll("form[data-save-form]").forEach(bindPredictionForm);
+
+document.querySelectorAll("[data-section-state]").forEach((section) => {
+  updateSectionState(section);
+});
 
 window.addEventListener("beforeunload", persistRoomState);
 
