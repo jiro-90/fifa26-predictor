@@ -7,7 +7,6 @@ from flask import (
     Blueprint,
     current_app,
     flash,
-    jsonify,
     redirect,
     render_template,
     request,
@@ -17,7 +16,7 @@ from flask import (
 
 from .rooms import create_room, get_room, join_room, save_group_prediction, save_match_prediction
 from .scoring import compile_room_scores
-from .sync import maybe_sync_tournament, sync_tournament
+from .sync import maybe_sync_tournament
 from .tournament import group_locked, load_tournament, match_locked, parse_utc, resolve_team, team_lookup
 
 
@@ -218,12 +217,3 @@ def save_match(code, match_id):
     save_match_prediction(code, membership["slot"], match_id, home, away)
     flash("Match prediction saved.")
     return redirect(url_for("main.room", code=code))
-
-
-@main_bp.post("/admin/sync")
-def admin_sync():
-    admin_key = current_app.config["ADMIN_SYNC_KEY"]
-    if not admin_key or request.headers.get("X-Admin-Sync-Key") != admin_key:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
-    summary = sync_tournament()
-    return jsonify({"ok": True, "summary": summary})

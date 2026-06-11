@@ -17,5 +17,4 @@ class Config:
         "FOOTBALL_DATA_BASE_URL", "https://api.football-data.org/v4"
     )
     FOOTBALL_DATA_COMPETITION = os.environ.get("FOOTBALL_DATA_COMPETITION", "WC")
-    ADMIN_SYNC_KEY = os.environ.get("ADMIN_SYNC_KEY", "")
     SYNC_INTERVAL_SECONDS = int(os.environ.get("SYNC_INTERVAL_SECONDS", "1800"))

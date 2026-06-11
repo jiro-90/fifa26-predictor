@@ -96,9 +96,10 @@ pip install -r requirements.txt
 
 5. Set environment variables:
    - `SECRET_KEY`
-   - `ADMIN_SYNC_KEY`
-   - optionally `RESULTS_PROVIDER=football-data`
-   - optionally `FOOTBALL_DATA_API_KEY`
+   - `RESULTS_PROVIDER=football-data`
+   - `FOOTBALL_DATA_API_KEY`
+   - `FOOTBALL_DATA_COMPETITION=WC`
+   - `SYNC_INTERVAL_SECONDS=1800`
 
 6. Restart the Python app from cPanel.
 
@@ -111,8 +112,6 @@ Example cPanel cron command every 30 minutes:
 ```bash
 cd /home/USERNAME/path/to/app && /home/USERNAME/virtualenv/path/to/app/3.x/bin/python sync_results.py
 ```
-
-If your host exposes only an HTTP trigger, you can also `POST` to `/admin/sync` with the `X-Admin-Sync-Key` header.
 
 ## Data files
 
