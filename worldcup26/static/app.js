@@ -7,6 +7,50 @@ function renumberList(list) {
   });
 }
 
+function getPredictionCard(form) {
+  return form.matches("[data-card-state]") ? form : form.closest("[data-card-state]");
+}
+
+function readFormState(form) {
+  if (form.dataset.saveForm === "group") {
+    return form.querySelector('input[name="team_order"]')?.value ?? "";
+  }
+
+  const home = form.querySelector('input[name="home"]')?.value.trim() ?? "";
+  const away = form.querySelector('input[name="away"]')?.value.trim() ?? "";
+  if (!home && !away) {
+    return "";
+  }
+  return `${home}:${away}`;
+}
+
+function updatePredictionCardState(form) {
+  const card = getPredictionCard(form);
+  if (!card) {
+    return;
+  }
+
+  const saved = form.dataset.savedState ?? "";
+  const initial = form.dataset.initialState ?? "";
+  const current = readFormState(form);
+  const locked = card.dataset.locked === "true" || form.dataset.locked === "true";
+  card.classList.remove("is-saved", "is-dirty", "is-missed");
+
+  if (saved && current === saved) {
+    card.classList.add("is-saved");
+    return;
+  }
+
+  if (current !== initial) {
+    card.classList.add("is-dirty");
+    return;
+  }
+
+  if (locked) {
+    card.classList.add("is-missed");
+  }
+}
+
 function bindSortableList(list) {
   if (list.dataset.locked === "true") {
     return;
@@ -23,9 +67,15 @@ function bindSortableList(list) {
       item.classList.remove("dragging");
       dragged = null;
       renumberList(list);
-      const orderInput = list.closest("form").querySelector('input[name="team_order"]');
+      const form = list.closest("form");
+      const orderInput = form?.querySelector('input[name="team_order"]');
       const teamIds = Array.from(list.querySelectorAll(".sortable-item")).map((node) => node.dataset.teamId);
-      orderInput.value = JSON.stringify(teamIds);
+      if (orderInput) {
+        orderInput.value = JSON.stringify(teamIds);
+      }
+      if (form) {
+        updatePredictionCardState(form);
+      }
     });
   });
 
@@ -44,6 +94,143 @@ function bindSortableList(list) {
     } else {
       target.before(dragged);
     }
+  });
+}
+
+function showToast(message, tone = "success") {
+  const stack = document.getElementById("toast-stack");
+  if (!stack || !message) {
+    return;
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${tone}`;
+  toast.textContent = message;
+  stack.append(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.add("is-visible");
+  });
+
+  window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+    window.setTimeout(() => {
+      toast.remove();
+    }, 220);
+  }, 2400);
+}
+
+function roomStateKey() {
+  return `room-ui:${window.location.pathname}`;
+}
+
+function persistRoomState() {
+  const items = Array.from(document.querySelectorAll("details[data-persist-id]"));
+  if (!items.length) {
+    return;
+  }
+
+  const payload = {
+    openIds: items.filter((item) => item.open).map((item) => item.dataset.persistId),
+    scrollY: window.scrollY,
+  };
+  window.sessionStorage.setItem(roomStateKey(), JSON.stringify(payload));
+}
+
+function restoreRoomState() {
+  const navEntry = window.performance.getEntriesByType("navigation")[0];
+  if (navEntry?.type !== "reload") {
+    return;
+  }
+
+  const raw = window.sessionStorage.getItem(roomStateKey());
+  if (!raw) {
+    return;
+  }
+
+  try {
+    const payload = JSON.parse(raw);
+    const openIds = new Set(payload.openIds || []);
+    document.querySelectorAll("details[data-persist-id]").forEach((item) => {
+      item.open = openIds.has(item.dataset.persistId);
+    });
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo(0, payload.scrollY || 0);
+    });
+  } catch {
+    window.sessionStorage.removeItem(roomStateKey());
+  }
+}
+
+async function submitPredictionForm(form, submitButton) {
+  const button = submitButton || form.querySelector('button[type="submit"]');
+  const card = getPredictionCard(form);
+  const originalLabel = button?.textContent;
+
+  form.dataset.submitting = "true";
+  if (card) {
+    card.classList.add("is-saving");
+  }
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Saving...";
+  }
+
+  try {
+    const response = await fetch(form.action, {
+      method: form.method || "POST",
+      body: new FormData(form),
+      headers: {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      credentials: "same-origin",
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.ok) {
+      showToast(payload?.message || "Could not save right now.", "error");
+      return;
+    }
+
+    const savedState = readFormState(form);
+    form.dataset.savedState = savedState;
+    form.dataset.initialState = savedState;
+    updatePredictionCardState(form);
+    persistRoomState();
+    showToast(payload.message || "Saved.", "success");
+  } catch {
+    showToast("Could not save right now.", "error");
+  } finally {
+    delete form.dataset.submitting;
+    if (card) {
+      card.classList.remove("is-saving");
+    }
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  }
+}
+
+function bindPredictionForm(form) {
+  updatePredictionCardState(form);
+
+  if (form.dataset.saveForm === "match") {
+    form.querySelectorAll('input[name="home"], input[name="away"]').forEach((input) => {
+      input.addEventListener("input", () => {
+        updatePredictionCardState(form);
+      });
+    });
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (form.dataset.submitting === "true") {
+      return;
+    }
+    submitPredictionForm(form, event.submitter);
   });
 }
 
@@ -86,10 +273,11 @@ document.querySelectorAll("dialog[data-auto-open='true']").forEach((dialog) => {
 });
 
 document.querySelectorAll("[data-accordion]").forEach((container) => {
-  const items = Array.from(container.querySelectorAll("details"));
+  const items = Array.from(container.children).filter((item) => item.tagName === "DETAILS");
   items.forEach((item) => {
     item.addEventListener("toggle", () => {
       if (!item.open) {
+        persistRoomState();
         return;
       }
       items.forEach((other) => {
@@ -97,6 +285,7 @@ document.querySelectorAll("[data-accordion]").forEach((container) => {
           other.open = false;
         }
       });
+      persistRoomState();
     });
   });
 });
@@ -122,3 +311,13 @@ document.querySelectorAll("[data-copy-target]").forEach((button) => {
     }
   });
 });
+
+document.querySelectorAll("details[data-persist-id]").forEach((item) => {
+  item.addEventListener("toggle", persistRoomState);
+});
+
+document.querySelectorAll("form[data-save-form]").forEach(bindPredictionForm);
+
+window.addEventListener("beforeunload", persistRoomState);
+
+restoreRoomState();

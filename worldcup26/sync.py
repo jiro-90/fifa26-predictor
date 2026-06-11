@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 from datetime import UTC, datetime
@@ -14,6 +15,13 @@ from .tournament import load_tournament, parse_utc, save_tournament
 
 def utc_timestamp() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def append_sync_log(payload: dict[str, Any]):
+    log_path = current_app.config["SYNC_LOG_FILE"]
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, ensure_ascii=True) + "\n")
 
 
 class SyncProvider:
@@ -244,6 +252,8 @@ class FootballDataProvider(SyncProvider):
         return {
             "updated_matches": updated_matches,
             "updated_groups": updated_groups,
+            "matches_fetched": len(api_matches),
+            "standings_groups_fetched": len(standings_payload.get("standings", [])),
             "provider": "football-data.org",
             "notes": [
                 f"Fetched {len(api_matches)} competition matches",
@@ -265,15 +275,39 @@ def select_provider():
 
 
 def sync_tournament() -> dict[str, Any]:
+    started_at = utc_timestamp()
     tournament = load_tournament(current_app.config["TOURNAMENT_FILE"])
     provider = select_provider()
-    summary = provider.sync(tournament)
-    save_tournament(current_app.config["TOURNAMENT_FILE"], tournament)
-    save_json_atomic(
-        current_app.config["LAST_SYNC_FILE"],
-        {"last_sync_at": utc_timestamp(), "summary": summary},
-    )
-    return summary
+    try:
+        summary = provider.sync(tournament)
+        finished_at = utc_timestamp()
+        save_tournament(current_app.config["TOURNAMENT_FILE"], tournament)
+        save_json_atomic(
+            current_app.config["LAST_SYNC_FILE"],
+            {"last_sync_at": finished_at, "summary": summary},
+        )
+        append_sync_log(
+            {
+                "started_at": started_at,
+                "finished_at": finished_at,
+                "status": "success",
+                "provider": summary.get("provider", current_app.config["PROVIDER"]),
+                "summary": summary,
+            }
+        )
+        return summary
+    except Exception as exc:
+        append_sync_log(
+            {
+                "started_at": started_at,
+                "finished_at": utc_timestamp(),
+                "status": "error",
+                "provider": current_app.config["PROVIDER"],
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+            }
+        )
+        raise
 
 
 def maybe_sync_tournament() -> dict[str, Any] | None:

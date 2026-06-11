@@ -351,6 +351,40 @@ input {
   border: 1px solid rgba(228, 77, 46, 0.14);
 }
 
+.toast-stack {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 40;
+  display: grid;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.toast {
+  min-width: min(320px, calc(100vw - 2rem));
+  padding: 0.95rem 1.1rem;
+  border-radius: 18px;
+  color: white;
+  box-shadow: 0 18px 40px rgba(16, 32, 58, 0.22);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-success {
+  background: linear-gradient(135deg, #00846d 0%, #14a38b 100%);
+}
+
+.toast-error {
+  background: linear-gradient(135deg, #b93119 0%, #e44d2e 100%);
+}
+
 .score-summary {
   align-items: stretch;
 }
@@ -457,6 +491,11 @@ input {
   overflow: hidden;
 }
 
+.group-section.is-locked {
+  border-color: rgba(23, 49, 95, 0.2);
+  background: linear-gradient(180deg, rgba(23, 49, 95, 0.08) 0%, rgba(255, 255, 255, 0.58) 100%);
+}
+
 .group-summary {
   list-style: none;
   display: flex;
@@ -477,6 +516,10 @@ input {
   font-weight: 700;
 }
 
+.group-section.is-locked .group-summary {
+  background: linear-gradient(90deg, rgba(23, 49, 95, 0.12) 0%, rgba(255, 255, 255, 0.55) 100%);
+}
+
 .group-section-body {
   padding: 0 1rem 1rem;
 }
@@ -493,6 +536,66 @@ input {
 .match-card,
 .breakdown-card {
   padding: 1rem;
+}
+
+.group-card,
+.match-card {
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.group-card.is-saved,
+.match-card.is-saved {
+  background: linear-gradient(180deg, rgba(11, 130, 108, 0.18) 0%, rgba(255, 255, 255, 0.88) 100%);
+  border-color: rgba(0, 132, 109, 0.34);
+}
+
+.group-card.is-dirty,
+.match-card.is-dirty {
+  background: linear-gradient(180deg, rgba(255, 202, 88, 0.32) 0%, rgba(255, 255, 255, 0.88) 100%);
+  border-color: rgba(255, 167, 38, 0.38);
+}
+
+.group-card.is-missed,
+.match-card.is-missed {
+  background: linear-gradient(180deg, rgba(228, 77, 46, 0.18) 0%, rgba(255, 255, 255, 0.9) 100%);
+  border-color: rgba(185, 49, 25, 0.3);
+}
+
+.group-card.is-saving,
+.match-card.is-saving {
+  box-shadow: 0 20px 42px rgba(16, 32, 58, 0.2);
+}
+
+.group-card.is-locked:not(.is-saved):not(.is-dirty):not(.is-missed),
+.match-card.is-locked:not(.is-saved):not(.is-dirty):not(.is-missed) {
+  background: linear-gradient(180deg, rgba(23, 49, 95, 0.12) 0%, rgba(255, 255, 255, 0.88) 100%);
+  border-color: rgba(23, 49, 95, 0.26);
+}
+
+.leader-breakdown {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+}
+
+.leader-breakdown summary {
+  list-style: none;
+}
+
+.leader-breakdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.leader-breakdown-grid,
+.result-score-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.leader-breakdown-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0 1rem 1rem;
 }
 
 .sortable-list {
@@ -641,6 +744,76 @@ input {
   gap: 0.45rem;
 }
 
+.result-details {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.9rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.result-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.result-score-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.result-score-card,
+.actual-order-panel {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.result-score-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.result-score-card ul {
+  margin: 0.75rem 0 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.4rem;
+  color: var(--muted);
+}
+
+.actual-order-panel {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.actual-order-list {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.actual-order-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.actual-order-list img {
+  width: 34px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(16, 32, 58, 0.15);
+}
+
 .opponent-panel {
   margin-top: 1rem;
   padding-top: 0.9rem;
@@ -682,6 +855,8 @@ input {
   .secret-grid,
   .match-grid,
   .jump-links,
+  .leader-breakdown-grid,
+  .result-score-grid,
   .breakdown-page-grid,
   .breakdown-summary-grid {
     grid-template-columns: 1fr;

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from functools import wraps
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 
 from .rooms import (
     claim_second_player,
@@ -17,7 +17,7 @@ from .rooms import (
 )
 from .scoring import compile_room_scores
 from .sync import maybe_sync_tournament
-from .tournament import group_locked, load_tournament, match_locked, parse_utc, resolve_team, team_lookup
+from .tournament import actual_group_order, group_complete, group_locked, load_tournament, match_locked, parse_utc, resolve_team, team_lookup
 
 
 main_bp = Blueprint("main", __name__)
@@ -40,6 +40,17 @@ def kickoff_label(value: str | None) -> str:
 
 def access_granted(code: str) -> bool:
     return bool(session.get("room_access", {}).get(code.upper()))
+
+
+def wants_json_response() -> bool:
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
+def save_feedback(message: str, ok: bool, status_code: int, code: str):
+    if wants_json_response():
+        return jsonify({"ok": ok, "message": message}), status_code
+    flash(message)
+    return redirect(url_for("main.room", code=code))
 
 
 def login_required(view):
@@ -190,9 +201,31 @@ def room(code):
     opponent = room["players"].get(opponent_slot)
     scores = compile_room_scores(room, tournament)
     score_entries = sorted(scores.items(), key=lambda item: item[1]["total"], reverse=True)
+    for _slot, card in score_entries:
+        card["group_total"] = sum(item["total"] for item in card["groups"])
+        card["match_total"] = sum(item["total"] for item in card["matches"])
+
+    group_score_lookup = {
+        slot: {item["group_id"]: item for item in card["groups"]}
+        for slot, card in score_entries
+    }
+    match_score_lookup = {
+        slot: {item["match_id"]: item for item in card["matches"]}
+        for slot, card in score_entries
+    }
     teams = team_lookup(tournament)
     matches_by_group: dict[str, list[dict]] = {}
     knockout_sections_lookup = {stage: {"stage": stage, "label": label, "matches": []} for stage, label in KNOCKOUT_STAGE_ORDER}
+
+    def build_score_cards(item_id: str, lookup: dict[str, dict[str, dict]]):
+        return [
+            {
+                "slot": slot,
+                "name": card["name"],
+                **lookup[slot][item_id],
+            }
+            for slot, card in score_entries
+        ]
 
     def build_match_card(match: dict):
         prediction = room["predictions"].get(membership["slot"], {}).get("matches", {}).get(match["id"], {})
@@ -210,6 +243,7 @@ def room(code):
             "teams_known": teams_known,
             "prediction": prediction,
             "opponent_prediction": opponent_prediction if locked and opponent_prediction else None,
+            "score_cards": build_score_cards(match["id"], match_score_lookup),
         }
 
     group_sections = []
@@ -222,15 +256,22 @@ def room(code):
         opponent_teams = []
         if locked and opponent_order:
             opponent_teams = [teams[team_id] for team_id in opponent_order if team_id in teams]
+        group_score_cards = build_score_cards(group["id"], group_score_lookup)
+        actual_order = next((item.get("actual_order") for item in group_score_cards if item.get("actual_order")), None)
+        if actual_order is None and (group.get("actual_positions") or group_complete(group["id"], tournament.get("matches", []))):
+            actual_order = actual_group_order(group, tournament.get("matches", []), teams)
         group_sections.append(
             {
                 "group": {
                     **group,
                     "locked": locked,
+                    "saved_order": saved_order,
                     "ordered_teams": ordered_teams,
                     "opponent_teams": opponent_teams,
+                    "actual_order_teams": [teams[team_id] for team_id in actual_order if team_id in teams] if actual_order else [],
                 },
                 "matches": [],
+                "score_cards": group_score_cards,
             }
         )
         matches_by_group[group["id"]] = group_sections[-1]["matches"]
@@ -242,11 +283,13 @@ def room(code):
         elif match.get("stage") in knockout_sections_lookup:
             knockout_sections_lookup[match["stage"]]["matches"].append(card)
 
-    knockout_sections = [
-        knockout_sections_lookup[stage]
-        for stage, _label in KNOCKOUT_STAGE_ORDER
-        if knockout_sections_lookup[stage]["matches"]
-    ]
+    knockout_sections = []
+    for stage, _label in KNOCKOUT_STAGE_ORDER:
+        section = knockout_sections_lookup[stage]
+        if not section["matches"]:
+            continue
+        section["locked"] = all(match["locked"] for match in section["matches"])
+        knockout_sections.append(section)
 
     return render_template(
         "room.html",
@@ -262,47 +305,17 @@ def room(code):
     )
 
 
-@main_bp.get("/room/<code>/breakdown")
-@login_required
-def breakdown(code):
-    maybe_sync_tournament()
-    tournament = load_tournament(current_app.config["TOURNAMENT_FILE"])
-    room = get_room(code)
-    if room is None:
-        flash("Room no longer exists.")
-        return redirect(url_for("main.index"))
-
-    scores = compile_room_scores(room, tournament)
-    score_entries = sorted(scores.items(), key=lambda item: item[1]["total"], reverse=True)
-
-    for _slot, card in score_entries:
-        card["group_total"] = sum(item["total"] for item in card["groups"])
-        card["match_total"] = sum(item["total"] for item in card["matches"])
-        card["group_scored"] = [item for item in card["groups"] if item["total"] > 0]
-        card["group_pending"] = [item for item in card["groups"] if item["total"] == 0]
-        card["match_scored"] = [item for item in card["matches"] if item["total"] > 0]
-        card["match_pending"] = [item for item in card["matches"] if item["total"] == 0]
-
-    return render_template(
-        "breakdown.html",
-        room=room,
-        score_entries=score_entries,
-    )
-
-
 @main_bp.post("/room/<code>/groups/<group_id>")
 @login_required
 def save_group(code, group_id):
     tournament = load_tournament(current_app.config["TOURNAMENT_FILE"])
     if group_locked(group_id, tournament.get("matches", [])):
-        flash("That group is locked already.")
-        return redirect(url_for("main.room", code=code))
+        return save_feedback("That group is locked already.", ok=False, status_code=409, code=code)
 
     try:
         ordered_team_ids = json.loads(request.form.get("team_order", "[]"))
     except json.JSONDecodeError:
-        flash("Invalid group order payload.")
-        return redirect(url_for("main.room", code=code))
+        return save_feedback("Invalid group order payload.", ok=False, status_code=400, code=code)
     valid_ids = {
         team["id"]
         for group in tournament.get("groups", [])
@@ -310,13 +323,11 @@ def save_group(code, group_id):
         for team in group.get("teams", [])
     }
     if set(ordered_team_ids) != valid_ids or len(ordered_team_ids) != len(valid_ids):
-        flash("Invalid group order payload.")
-        return redirect(url_for("main.room", code=code))
+        return save_feedback("Invalid group order payload.", ok=False, status_code=400, code=code)
 
     membership = session["memberships"][code]
     save_group_prediction(code, membership["slot"], group_id, ordered_team_ids)
-    flash(f"{group_id} standings saved.")
-    return redirect(url_for("main.room", code=code))
+    return save_feedback(f"{group_id} standings saved.", ok=True, status_code=200, code=code)
 
 
 @main_bp.post("/room/<code>/matches/<match_id>")
@@ -325,30 +336,24 @@ def save_match(code, match_id):
     tournament = load_tournament(current_app.config["TOURNAMENT_FILE"])
     match = next((item for item in tournament.get("matches", []) if item["id"] == match_id), None)
     if match is None:
-        flash("Match not found.")
-        return redirect(url_for("main.room", code=code))
+        return save_feedback("Match not found.", ok=False, status_code=404, code=code)
     teams = team_lookup(tournament)
     if (
         resolve_team(match.get("home_team_id"), teams)["name"] == "TBD"
         or resolve_team(match.get("away_team_id"), teams)["name"] == "TBD"
     ):
-        flash("That knockout match is not ready for predictions yet.")
-        return redirect(url_for("main.room", code=code))
+        return save_feedback("That knockout match is not ready for predictions yet.", ok=False, status_code=409, code=code)
     if match_locked(match):
-        flash("That match is locked already.")
-        return redirect(url_for("main.room", code=code))
+        return save_feedback("That match is locked already.", ok=False, status_code=409, code=code)
 
     try:
         home = int(request.form.get("home", ""))
         away = int(request.form.get("away", ""))
     except ValueError:
-        flash("Use whole-number score predictions.")
-        return redirect(url_for("main.room", code=code))
+        return save_feedback("Use whole-number score predictions.", ok=False, status_code=400, code=code)
     if home < 0 or away < 0:
-        flash("Scores cannot be negative.")
-        return redirect(url_for("main.room", code=code))
+        return save_feedback("Scores cannot be negative.", ok=False, status_code=400, code=code)
 
     membership = session["memberships"][code]
     save_match_prediction(code, membership["slot"], match_id, home, away)
-    flash("Match prediction saved.")
-    return redirect(url_for("main.room", code=code))
+    return save_feedback("Match prediction saved.", ok=True, status_code=200, code=code)

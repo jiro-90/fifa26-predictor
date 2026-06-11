@@ -34,6 +34,7 @@
         {% block content %}{% endblock %}
       </main>
     </div>
+    <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
   </body>
 </html>

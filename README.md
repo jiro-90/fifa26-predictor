@@ -100,6 +100,7 @@ pip install -r requirements.txt
    - `FOOTBALL_DATA_API_KEY`
    - `FOOTBALL_DATA_COMPETITION=WC`
    - `SYNC_INTERVAL_SECONDS=1800`
+   - `SYNC_LOG_FILE=data/sync.log`
 
 6. Restart the Python app from cPanel.
 
@@ -112,6 +113,14 @@ Example cPanel cron command every 30 minutes:
 ```bash
 cd /home/USERNAME/path/to/app && /home/USERNAME/virtualenv/path/to/app/3.x/bin/python sync_results.py
 ```
+
+Each cron run also appends one JSON log entry to `data/sync.log` by default. That log records:
+
+- start time
+- finish time
+- success or error status
+- provider name
+- sync summary counts such as fetched matches, mapped matches, and updated groups
 
 ## Data files
 
@@ -146,6 +155,7 @@ RESULTS_PROVIDER=football-data
 FOOTBALL_DATA_API_KEY=your-key
 FOOTBALL_DATA_COMPETITION=WC
 SYNC_INTERVAL_SECONDS=1800
+SYNC_LOG_FILE=data/sync.log
 ```
 
 Get your key here:

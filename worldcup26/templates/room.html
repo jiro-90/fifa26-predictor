@@ -53,7 +53,6 @@ Password: {{ room_password }}</textarea>
       {% if knockout_sections %}
         <a href="#knockout">Knockout</a>
       {% endif %}
-      <a href="{{ url_for('main.breakdown', code=room.code) }}">Points Breakdown</a>
     </nav>
   </section>
 
@@ -61,17 +60,36 @@ Password: {{ room_password }}</textarea>
     <section class="panel leaderboard-panel anchor-target" id="leaderboard">
       <div class="section-title">
         <h2>Leaderboard</h2>
-        <a class="button button-secondary button-small" href="{{ url_for('main.breakdown', code=room.code) }}">Open Points Breakdown</a>
+        <p>Open a player row for the scoring split between group picks and match picks.</p>
       </div>
       <div class="leaderboard-table">
         {% for slot, card in score_entries %}
-          <div class="leader-row">
-            <div>
-              <strong>{{ card.name }}</strong>
-              <span>{{ slot|title }}</span>
+          <details class="leader-breakdown" data-persist-id="leader-{{ slot }}">
+            <summary class="leader-row">
+              <div>
+                <strong>{{ card.name }}</strong>
+                <span>{{ slot|title }}</span>
+              </div>
+              <strong>{{ card.total }} pts</strong>
+            </summary>
+            <div class="leader-breakdown-grid">
+              <article class="score-tile">
+                <span>Total</span>
+                <strong>{{ card.total }}</strong>
+                <small>All predictions</small>
+              </article>
+              <article class="score-tile">
+                <span>Group Picks</span>
+                <strong>{{ card.group_total }}</strong>
+                <small>Standing predictions</small>
+              </article>
+              <article class="score-tile">
+                <span>Match Picks</span>
+                <strong>{{ card.match_total }}</strong>
+                <small>Scoreline predictions</small>
+              </article>
             </div>
-            <strong>{{ card.total }} pts</strong>
-          </div>
+          </details>
         {% endfor %}
       </div>
     </section>
@@ -84,7 +102,7 @@ Password: {{ room_password }}</textarea>
       <div class="section-stack" data-accordion>
         {% for section in group_sections %}
           {% set group = section.group %}
-          <details class="group-section">
+          <details class="group-section{% if group.locked %} is-locked{% endif %}" data-persist-id="group-{{ group.id }}">
             <summary class="group-summary">
               <div>
                 <p class="eyebrow">{{ group.name }}</p>
@@ -94,7 +112,16 @@ Password: {{ room_password }}</textarea>
             </summary>
 
             <div class="group-section-body">
-              <form class="group-card grouped-card" method="post" action="{{ url_for('main.save_group', code=room.code, group_id=group.id) }}">
+              <form
+                class="group-card grouped-card prediction-form{% if group.saved_order %} is-saved{% elif group.locked %} is-missed{% endif %}{% if group.locked %} is-locked{% endif %}"
+                method="post"
+                action="{{ url_for('main.save_group', code=room.code, group_id=group.id) }}"
+                data-save-form="group"
+                data-card-state
+                data-locked="{{ 'true' if group.locked else 'false' }}"
+                data-initial-state='{{ group.ordered_teams | map(attribute="id") | list | tojson }}'
+                data-saved-state='{{ (group.saved_order or "") | tojson }}'
+              >
                 <div class="group-card-top">
                   <div>
                     <strong>Your final order</strong>
@@ -131,11 +158,47 @@ Password: {{ room_password }}</textarea>
                     <span>No opponent prediction submitted.</span>
                   {% endif %}
                 </div>
+
+                <div class="result-details">
+                  <div class="result-heading">
+                    <span>Results and scoring</span>
+                    <strong>{{ "Scored" if group.actual_order_teams else "Pending group finish" }}</strong>
+                  </div>
+                  {% if group.actual_order_teams %}
+                    <div class="actual-order-panel">
+                      <strong>Final standings</strong>
+                      <ol class="actual-order-list">
+                        {% for team in group.actual_order_teams %}
+                          <li>
+                            <img src="https://flagcdn.com/w80/{{ team.flag }}.png" alt="{{ team.name }} flag">
+                            <span>{{ team.name }}</span>
+                          </li>
+                        {% endfor %}
+                      </ol>
+                    </div>
+                  {% endif %}
+                  <div class="result-score-grid">
+                    {% for item in section.score_cards %}
+                      <article class="result-score-card">
+                        <div class="result-score-top">
+                          <strong>{{ item.name }}</strong>
+                          <span>{{ item.total }} pts</span>
+                        </div>
+                        <ul>
+                          {% for line in item.breakdown %}
+                            <li>{{ line }}</li>
+                          {% endfor %}
+                        </ul>
+                      </article>
+                    {% endfor %}
+                  </div>
+                </div>
               </form>
 
               <div class="match-grid">
                 {% for match in section.matches %}
-                  <article class="match-card">
+                  {% set match_saved_state = (match.prediction.home ~ ":" ~ match.prediction.away) if match.prediction.home is not none and match.prediction.away is not none else "" %}
+                  <article class="match-card prediction-card{% if match_saved_state %} is-saved{% elif match.locked %} is-missed{% endif %}{% if match.locked %} is-locked{% endif %}" data-card-state data-locked="{{ 'true' if match.locked else 'false' }}">
                     <div class="match-meta">
                       <span>Group {{ group.id }}</span>
                       <span>{{ match.kickoff_label }}</span>
@@ -159,7 +222,14 @@ Password: {{ room_password }}</textarea>
                         <span>{{ match.away_team.name }}</span>
                       </div>
                     </div>
-                    <form class="score-form" method="post" action="{{ url_for('main.save_match', code=room.code, match_id=match.id) }}">
+                    <form
+                      class="score-form prediction-form"
+                      method="post"
+                      action="{{ url_for('main.save_match', code=room.code, match_id=match.id) }}"
+                      data-save-form="match"
+                      data-initial-state="{{ match_saved_state }}"
+                      data-saved-state="{{ match_saved_state }}"
+                    >
                       <input type="number" min="0" name="home" value="{{ match.prediction.home if match.prediction.home is not none else '' }}" {% if match.locked or not match.teams_known %}disabled{% endif %} required>
                       <span>-</span>
                       <input type="number" min="0" name="away" value="{{ match.prediction.away if match.prediction.away is not none else '' }}" {% if match.locked or not match.teams_known %}disabled{% endif %} required>
@@ -193,6 +263,27 @@ Password: {{ room_password }}</textarea>
                         <span>No opponent prediction submitted.</span>
                       {% endif %}
                     </div>
+                    <div class="result-details">
+                      <div class="result-heading">
+                        <span>Results and scoring</span>
+                        <strong>{{ "Scored" if match.status == "FINISHED" else "Pending result" }}</strong>
+                      </div>
+                      <div class="result-score-grid">
+                        {% for item in match.score_cards %}
+                          <article class="result-score-card">
+                            <div class="result-score-top">
+                              <strong>{{ item.name }}</strong>
+                              <span>{{ item.total }} pts</span>
+                            </div>
+                            <ul>
+                              {% for line in item.breakdown %}
+                                <li>{{ line }}</li>
+                              {% endfor %}
+                            </ul>
+                          </article>
+                        {% endfor %}
+                      </div>
+                    </div>
                   </article>
                 {% endfor %}
               </div>
@@ -208,9 +299,9 @@ Password: {{ room_password }}</textarea>
           <h2>Knockout Rounds</h2>
           <p>Knockout fixtures are grouped by tournament stage for easier navigation.</p>
         </div>
-        <div class="section-stack" data-accordion>
-          {% for section in knockout_sections %}
-            <details class="group-section">
+      <div class="section-stack" data-accordion>
+        {% for section in knockout_sections %}
+            <details class="group-section{% if section.locked %} is-locked{% endif %}" data-persist-id="stage-{{ section.stage }}">
               <summary class="group-summary">
                 <div>
                   <p class="eyebrow">Knockout</p>
@@ -221,7 +312,8 @@ Password: {{ room_password }}</textarea>
               <div class="group-section-body">
                 <div class="match-grid">
                   {% for match in section.matches %}
-                    <article class="match-card">
+                    {% set match_saved_state = (match.prediction.home ~ ":" ~ match.prediction.away) if match.prediction.home is not none and match.prediction.away is not none else "" %}
+                    <article class="match-card prediction-card{% if match_saved_state %} is-saved{% elif match.locked %} is-missed{% endif %}{% if match.locked %} is-locked{% endif %}" data-card-state data-locked="{{ 'true' if match.locked else 'false' }}">
                       <div class="match-meta">
                         <span>{{ section.label }}</span>
                         <span>{{ match.kickoff_label }}</span>
@@ -245,7 +337,14 @@ Password: {{ room_password }}</textarea>
                           <span>{{ match.away_team.name }}</span>
                         </div>
                       </div>
-                      <form class="score-form" method="post" action="{{ url_for('main.save_match', code=room.code, match_id=match.id) }}">
+                      <form
+                        class="score-form prediction-form"
+                        method="post"
+                        action="{{ url_for('main.save_match', code=room.code, match_id=match.id) }}"
+                        data-save-form="match"
+                        data-initial-state="{{ match_saved_state }}"
+                        data-saved-state="{{ match_saved_state }}"
+                      >
                         <input type="number" min="0" name="home" value="{{ match.prediction.home if match.prediction.home is not none else '' }}" {% if match.locked or not match.teams_known %}disabled{% endif %} required>
                         <span>-</span>
                         <input type="number" min="0" name="away" value="{{ match.prediction.away if match.prediction.away is not none else '' }}" {% if match.locked or not match.teams_known %}disabled{% endif %} required>
@@ -278,6 +377,27 @@ Password: {{ room_password }}</textarea>
                         {% else %}
                           <span>No opponent prediction submitted.</span>
                         {% endif %}
+                      </div>
+                      <div class="result-details">
+                        <div class="result-heading">
+                          <span>Results and scoring</span>
+                          <strong>{{ "Scored" if match.status == "FINISHED" else "Pending result" }}</strong>
+                        </div>
+                        <div class="result-score-grid">
+                          {% for item in match.score_cards %}
+                            <article class="result-score-card">
+                              <div class="result-score-top">
+                                <strong>{{ item.name }}</strong>
+                                <span>{{ item.total }} pts</span>
+                              </div>
+                              <ul>
+                                {% for line in item.breakdown %}
+                                  <li>{{ line }}</li>
+                                {% endfor %}
+                              </ul>
+                            </article>
+                          {% endfor %}
+                        </div>
                       </div>
                     </article>
                   {% endfor %}

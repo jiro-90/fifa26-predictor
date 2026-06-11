@@ -11,6 +11,7 @@ class Config:
     ROOMS_FILE = DATA_DIR / "rooms.json"
     TOURNAMENT_FILE = DATA_DIR / "tournament.json"
     LAST_SYNC_FILE = DATA_DIR / "last_sync.json"
+    SYNC_LOG_FILE = Path(os.environ.get("SYNC_LOG_FILE", DATA_DIR / "sync.log"))
     PROVIDER = os.environ.get("RESULTS_PROVIDER", "none").lower()
     FOOTBALL_DATA_API_KEY = os.environ.get("FOOTBALL_DATA_API_KEY", "")
     FOOTBALL_DATA_BASE_URL = os.environ.get(
