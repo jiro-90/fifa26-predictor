@@ -21,9 +21,9 @@ function readFormState(form) {
   }
 
   if (form.dataset.saveForm === "top-five") {
-    return JSON.stringify(
-      Array.from(form.querySelectorAll('select[name="team_ids"]')).map((select) => select.value),
-    );
+    return Array.from(form.querySelectorAll('select[name="team_ids"]'))
+      .map((select) => select.value)
+      .join("|");
   }
 
   const home = form.querySelector('input[name="home"]')?.value.trim() ?? "";
@@ -32,6 +32,27 @@ function readFormState(form) {
     return "";
   }
   return `${home}:${away}`;
+}
+
+function syncTopFiveSelection(form) {
+  if (form.dataset.saveForm !== "top-five") {
+    return;
+  }
+
+  const saved = form.dataset.savedState ?? "";
+  if (!saved) {
+    return;
+  }
+
+  const values = saved.split("|");
+  const selects = Array.from(form.querySelectorAll('select[name="team_ids"]'));
+  if (selects.length !== values.length) {
+    return;
+  }
+
+  selects.forEach((select, index) => {
+    select.value = values[index] ?? "";
+  });
 }
 
 function updatePredictionCardState(form) {
@@ -180,7 +201,10 @@ function persistRoomState() {
   }
 
   const payload = {
-    openIds: items.filter((item) => item.open).map((item) => item.dataset.persistId),
+    openIds: items
+      .filter((item) => item.open && !item.hasAttribute("data-accordion-item"))
+      .map((item) => item.dataset.persistId),
+    openAccordionId: items.find((item) => item.open && item.hasAttribute("data-accordion-item"))?.dataset.persistId ?? null,
     scrollY: window.scrollY,
   };
   window.sessionStorage.setItem(roomStateKey(), JSON.stringify(payload));
@@ -200,7 +224,12 @@ function restoreRoomState() {
   try {
     const payload = JSON.parse(raw);
     const openIds = new Set(payload.openIds || []);
+    const openAccordionId = payload.openAccordionId || null;
     document.querySelectorAll("details[data-persist-id]").forEach((item) => {
+      if (item.hasAttribute("data-accordion-item")) {
+        item.open = item.dataset.persistId === openAccordionId;
+        return;
+      }
       item.open = openIds.has(item.dataset.persistId);
     });
 
@@ -265,6 +294,7 @@ async function submitPredictionForm(form, submitButton) {
 }
 
 function bindPredictionForm(form) {
+  syncTopFiveSelection(form);
   updatePredictionCardState(form);
   updateSectionState(form);
 
@@ -333,24 +363,22 @@ document.querySelectorAll("dialog[data-auto-open='true']").forEach((dialog) => {
   }
 });
 
-document.querySelectorAll("[data-accordion]").forEach((container) => {
-  const items = Array.from(container.children).filter((item) => item.tagName === "DETAILS");
-  items.forEach((item) => {
-    item.addEventListener("toggle", () => {
-      if (!item.open) {
-        persistRoomState();
-        return;
-      }
-      items.forEach((other) => {
-        if (other !== item) {
-          other.open = false;
-        }
-      });
-      window.requestAnimationFrame(() => {
-        scrollSectionIntoView(item);
-      });
+const accordionItems = Array.from(document.querySelectorAll("details[data-accordion-item]"));
+accordionItems.forEach((item) => {
+  item.addEventListener("toggle", () => {
+    if (!item.open) {
       persistRoomState();
+      return;
+    }
+    accordionItems.forEach((other) => {
+      if (other !== item) {
+        other.open = false;
+      }
     });
+    window.requestAnimationFrame(() => {
+      scrollSectionIntoView(item);
+    });
+    persistRoomState();
   });
 });
 
