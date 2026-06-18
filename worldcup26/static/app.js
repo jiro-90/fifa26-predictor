@@ -20,6 +20,12 @@ function readFormState(form) {
     return form.querySelector('input[name="team_order"]')?.value ?? "";
   }
 
+  if (form.dataset.saveForm === "top-five") {
+    return JSON.stringify(
+      Array.from(form.querySelectorAll('select[name="team_ids"]')).map((select) => select.value),
+    );
+  }
+
   const home = form.querySelector('input[name="home"]')?.value.trim() ?? "";
   const away = form.querySelector('input[name="away"]')?.value.trim() ?? "";
   if (!home && !away) {
@@ -265,6 +271,15 @@ function bindPredictionForm(form) {
   if (form.dataset.saveForm === "match") {
     form.querySelectorAll('input[name="home"], input[name="away"]').forEach((input) => {
       input.addEventListener("input", () => {
+        updatePredictionCardState(form);
+        updateSectionState(form);
+      });
+    });
+  }
+
+  if (form.dataset.saveForm === "top-five") {
+    form.querySelectorAll('select[name="team_ids"]').forEach((select) => {
+      select.addEventListener("change", () => {
         updatePredictionCardState(form);
         updateSectionState(form);
       });

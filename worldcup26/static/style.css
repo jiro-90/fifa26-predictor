@@ -416,6 +416,16 @@ input {
   background: rgba(255, 255, 255, 0.9);
 }
 
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+}
+
 .flash-stack {
   display: grid;
   gap: 0.75rem;
@@ -682,6 +692,19 @@ input {
   margin: 1rem 0 0;
   display: grid;
   gap: 0.65rem;
+}
+
+.top-five-grid {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.top-five-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.8rem;
 }
 
 .sortable-item,

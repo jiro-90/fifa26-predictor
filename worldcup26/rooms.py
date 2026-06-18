@@ -26,6 +26,10 @@ def rooms_default() -> dict[str, Any]:
     return {"rooms": {}}
 
 
+def prediction_slot_default() -> dict[str, Any]:
+    return {"matches": {}, "groups": {}, "top_five": []}
+
+
 def load_rooms() -> dict[str, Any]:
     return load_json(current_app.config["ROOMS_FILE"], rooms_default())
 
@@ -70,8 +74,8 @@ def create_room(player_name: str, player_secret: str) -> dict[str, Any]:
                 "two": None,
             },
             "predictions": {
-                "one": {"matches": {}, "groups": {}},
-                "two": {"matches": {}, "groups": {}},
+                "one": prediction_slot_default(),
+                "two": prediction_slot_default(),
             },
         }
         return payload
@@ -134,7 +138,7 @@ def get_room(code: str) -> dict[str, Any] | None:
 def save_match_prediction(code: str, slot: str, match_id: str, home: int, away: int):
     def updater(payload):
         room = payload["rooms"][code]
-        room["predictions"].setdefault(slot, {"matches": {}, "groups": {}})
+        room["predictions"].setdefault(slot, prediction_slot_default())
         room["predictions"][slot]["matches"][match_id] = {
             "home": home,
             "away": away,
@@ -148,9 +152,20 @@ def save_match_prediction(code: str, slot: str, match_id: str, home: int, away: 
 def save_group_prediction(code: str, slot: str, group_id: str, ordered_team_ids: list[str]):
     def updater(payload):
         room = payload["rooms"][code]
-        room["predictions"].setdefault(slot, {"matches": {}, "groups": {}})
+        room["predictions"].setdefault(slot, prediction_slot_default())
         room["predictions"][slot]["groups"][group_id] = ordered_team_ids
         room["predictions"][slot]["groups"][f"{group_id}_updated_at"] = utc_timestamp()
+        return payload
+
+    return locked_json_update(current_app.config["ROOMS_FILE"], rooms_default(), updater)
+
+
+def save_top_five_prediction(code: str, slot: str, ordered_team_ids: list[str]):
+    def updater(payload):
+        room = payload["rooms"][code]
+        room["predictions"].setdefault(slot, prediction_slot_default())
+        room["predictions"][slot]["top_five"] = ordered_team_ids
+        room["predictions"][slot]["top_five_updated_at"] = utc_timestamp()
         return payload
 
     return locked_json_update(current_app.config["ROOMS_FILE"], rooms_default(), updater)

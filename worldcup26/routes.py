@@ -11,13 +11,25 @@ from .rooms import (
     get_room,
     save_group_prediction,
     save_match_prediction,
+    save_top_five_prediction,
     validate_player_secret,
     verify_player_login,
     verify_room_access,
 )
 from .scoring import compile_room_scores
 from .sync import maybe_sync_tournament
-from .tournament import actual_group_order, group_complete, group_locked, load_tournament, match_locked, parse_utc, resolve_team, team_lookup
+from .tournament import (
+    actual_group_order,
+    group_complete,
+    group_locked,
+    load_tournament,
+    match_locked,
+    parse_utc,
+    resolve_team,
+    team_lookup,
+    top_five_deadline,
+    top_five_locked,
+)
 
 
 main_bp = Blueprint("main", __name__)
@@ -214,6 +226,18 @@ def room(code):
         for slot, card in score_entries
     }
     teams = team_lookup(tournament)
+    top_five_deadline_label = kickoff_label(top_five_deadline().isoformat())
+    tournament_teams = [team for group in tournament.get("groups", []) for team in group.get("teams", [])]
+    top_five_saved = room["predictions"].get(membership["slot"], {}).get("top_five") or []
+    top_five_saved = [team_id for team_id in top_five_saved if team_id in teams]
+    top_five_saved = top_five_saved if len(top_five_saved) == 5 and len(set(top_five_saved)) == 5 else []
+    top_five_selection = top_five_saved or ["", "", "", "", ""]
+    top_five_is_locked = top_five_locked()
+    opponent_top_five_saved = room["predictions"].get(opponent_slot, {}).get("top_five") or []
+    opponent_top_five_saved = [team_id for team_id in opponent_top_five_saved if team_id in teams]
+    opponent_top_five_teams = []
+    if top_five_is_locked and len(opponent_top_five_saved) == 5 and len(set(opponent_top_five_saved)) == 5:
+        opponent_top_five_teams = [teams[team_id] for team_id in opponent_top_five_saved]
     matches_by_group: dict[str, list[dict]] = {}
     knockout_sections_lookup = {stage: {"stage": stage, "label": label, "matches": []} for stage, label in KNOCKOUT_STAGE_ORDER}
 
@@ -309,6 +333,14 @@ def room(code):
         room=room,
         scores=scores,
         score_entries=score_entries,
+        top_five={
+            "deadline_label": top_five_deadline_label,
+            "locked": top_five_is_locked,
+            "saved_order": top_five_saved,
+            "selection": top_five_selection,
+            "teams": tournament_teams,
+            "opponent_teams": opponent_top_five_teams,
+        },
         group_sections=group_sections,
         knockout_sections=knockout_sections,
         membership=membership,
@@ -341,6 +373,30 @@ def save_group(code, group_id):
     membership = session["memberships"][code]
     save_group_prediction(code, membership["slot"], group_id, ordered_team_ids)
     return save_feedback(f"{group_id} standings saved.", ok=True, status_code=200, code=code)
+
+
+@main_bp.post("/room/<code>/top-five")
+@login_required
+def save_top_five(code):
+    if top_five_locked():
+        return save_feedback("Top 5 selection is locked already.", ok=False, status_code=409, code=code)
+
+    team_ids = request.form.getlist("team_ids")
+    if len(team_ids) != 5:
+        return save_feedback("Choose exactly five teams.", ok=False, status_code=400, code=code)
+
+    tournament = load_tournament(current_app.config["TOURNAMENT_FILE"])
+    valid_ids = {
+        team["id"]
+        for group in tournament.get("groups", [])
+        for team in group.get("teams", [])
+    }
+    if any(team_id not in valid_ids for team_id in team_ids) or len(set(team_ids)) != 5:
+        return save_feedback("Choose five different valid teams.", ok=False, status_code=400, code=code)
+
+    membership = session["memberships"][code]
+    save_top_five_prediction(code, membership["slot"], team_ids)
+    return save_feedback("Top 5 saved.", ok=True, status_code=200, code=code)
 
 
 @main_bp.post("/room/<code>/matches/<match_id>")

@@ -3,6 +3,7 @@
 {% block menu_links %}
   <div class="menu-divider"></div>
   <a href="#leaderboard" data-menu-link>Leaderboard</a>
+  <a href="#top-five" data-menu-link>Top 5</a>
   <a href="#groups" data-menu-link>Groups</a>
   {% if knockout_sections %}
     <a href="#knockout" data-menu-link>Knockout</a>
@@ -84,6 +85,99 @@ Password: {{ room_password }}</textarea>
             </div>
           </details>
         {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel anchor-target" id="top-five">
+      <div class="section-title">
+        <h2>Top 5 Finish</h2>
+        <p>Pick the five teams you think will finish highest, in exact order.</p>
+      </div>
+      <div class="section-stack" data-accordion>
+        <details class="group-section{% if top_five.saved_order %} is-section-saved{% elif top_five.locked %} is-section-missed{% endif %}" data-persist-id="top-five" data-section-state>
+          <summary class="group-summary">
+            <div>
+              <p class="eyebrow">Tournament Pick</p>
+              <strong>
+                {% if top_five.saved_order %}
+                  Saved
+                {% elif top_five.locked %}
+                  Locked
+                {% else %}
+                  Open
+                {% endif %}
+              </strong>
+            </div>
+            <span>Deadline {{ top_five.deadline_label }}</span>
+          </summary>
+
+          <div class="group-section-body">
+            <form
+              class="group-card grouped-card prediction-form{% if top_five.saved_order %} is-saved{% elif top_five.locked %} is-missed{% endif %}{% if top_five.locked %} is-locked{% endif %}"
+              method="post"
+              action="{{ url_for('main.save_top_five', code=room.code) }}"
+              data-save-form="top-five"
+              data-card-state
+              data-locked="{{ 'true' if top_five.locked else 'false' }}"
+              data-initial-state='{{ top_five.selection | tojson }}'
+              data-saved-state='{{ (top_five.saved_order or "") | tojson }}'
+            >
+              <div class="group-card-top">
+                <div>
+                  <strong>Your Top 5</strong>
+                  <p class="form-note">Choose five different teams in finishing order before the deadline.</p>
+                </div>
+                <button class="button button-small" type="submit" {% if top_five.locked %}disabled{% endif %}>Save</button>
+              </div>
+              <div class="top-five-grid">
+                {% for selected_team_id in top_five.selection %}
+                  <label class="top-five-row">
+                    <span class="position-badge">{{ loop.index }}</span>
+                    <select name="team_ids" {% if top_five.locked %}disabled{% endif %} required>
+                      <option value="">Choose a team</option>
+                      {% for group in group_sections %}
+                        <optgroup label="{{ group.group.name }}">
+                          {% for team in group.group.teams %}
+                            <option value="{{ team.id }}" {% if team.id == selected_team_id %}selected{% endif %}>{{ team.name }}</option>
+                          {% endfor %}
+                        </optgroup>
+                      {% endfor %}
+                    </select>
+                  </label>
+                {% endfor %}
+              </div>
+              <div class="opponent-panel">
+                <strong>Opponent Top 5</strong>
+                {% if not opponent %}
+                  <span>Waiting for Player 2 to join.</span>
+                {% elif not top_five.locked %}
+                  <span>Hidden until the deadline passes.</span>
+                {% elif top_five.opponent_teams %}
+                  <ol class="actual-order-list">
+                    {% for team in top_five.opponent_teams %}
+                      <li>
+                        <img src="https://flagcdn.com/w80/{{ team.flag }}.png" alt="{{ team.name }} flag">
+                        <span>{{ team.name }}</span>
+                      </li>
+                    {% endfor %}
+                  </ol>
+                {% else %}
+                  <span>No opponent prediction submitted.</span>
+                {% endif %}
+              </div>
+              <div class="result-details">
+                <div class="result-heading">
+                  <span>Status</span>
+                  <strong>{{ "Locked" if top_five.locked else "Open" }}</strong>
+                </div>
+                <div class="actual-order-panel">
+                  <strong>Scoring</strong>
+                  <span class="form-note">Scoring for this Top 5 pick will be added later.</span>
+                </div>
+              </div>
+            </form>
+          </div>
+        </details>
       </div>
     </section>
 

@@ -8,6 +8,9 @@ from typing import Any
 from .filedb import load_json, save_json_atomic
 
 
+TOP_FIVE_DEADLINE_UTC = "2026-06-18T16:00:00Z"
+
+
 def utc_now() -> datetime:
     return datetime.now(UTC)
 
@@ -51,6 +54,15 @@ def group_locked(group_id: str, matches: list[dict[str, Any]], now: datetime | N
     if kickoff is None:
         return False
     return now >= kickoff
+
+
+def top_five_deadline() -> datetime:
+    return parse_utc(TOP_FIVE_DEADLINE_UTC)
+
+
+def top_five_locked(now: datetime | None = None) -> bool:
+    now = now or utc_now()
+    return now >= top_five_deadline()
 
 
 def team_lookup(tournament: dict[str, Any]) -> dict[str, dict[str, Any]]:

@@ -1,7 +1,9 @@
 import json
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from app import app
 from worldcup26.rooms import hash_password, verify_room_access
@@ -20,6 +22,16 @@ class PredictionVisibilityTests(unittest.TestCase):
                         {"id": "par", "name": "Paraguay", "flag": "py", "fifa_code": "PAR"},
                         {"id": "aus", "name": "Australia", "flag": "au", "fifa_code": "AUS"},
                         {"id": "tur", "name": "Turkiye", "flag": "tr", "fifa_code": "TUR"},
+                    ],
+                },
+                {
+                    "id": "E",
+                    "name": "Group E",
+                    "teams": [
+                        {"id": "mex", "name": "Mexico", "flag": "mx", "fifa_code": "MEX"},
+                        {"id": "bra", "name": "Brazil", "flag": "br", "fifa_code": "BRA"},
+                        {"id": "arg", "name": "Argentina", "flag": "ar", "fifa_code": "ARG"},
+                        {"id": "fra", "name": "France", "flag": "fr", "fifa_code": "FRA"},
                     ],
                 }
             ],
@@ -55,10 +67,12 @@ class PredictionVisibilityTests(unittest.TestCase):
                         "one": {
                             "matches": {"M001": {"home": 1, "away": 0}},
                             "groups": {"D": ["usa", "par", "aus", "tur"]},
+                            "top_five": ["usa", "par", "aus", "tur", "mex"],
                         },
                         "two": {
                             "matches": {"M001": {"home": 2, "away": 1}},
                             "groups": {"D": ["par", "usa", "tur", "aus"]},
+                            "top_five": ["par", "usa", "tur", "aus", "mex"],
                         },
                     },
                 }
@@ -84,7 +98,11 @@ class PredictionVisibilityTests(unittest.TestCase):
             with app.test_client() as client:
                 with client.session_transaction() as session:
                     session["memberships"] = {"ROOM01": {"slot": "one", "name": "Alice"}}
-                response = client.get("/room/ROOM01")
+                with patch("worldcup26.routes.top_five_locked", return_value=False), patch(
+                    "worldcup26.routes.top_five_deadline",
+                    return_value=datetime(2026, 6, 18, 16, 0, tzinfo=UTC),
+                ):
+                    response = client.get("/room/ROOM01")
                 return response.get_data(as_text=True)
 
     def test_opponent_predictions_hidden_before_lock(self):
@@ -98,6 +116,39 @@ class PredictionVisibilityTests(unittest.TestCase):
         self.assertIn("2 - 1", body)
         self.assertIn("<span>1.</span>", body)
         self.assertIn("Paraguay", body)
+
+    def test_opponent_top_five_hidden_before_deadline(self):
+        body = self.render_room(self.build_tournament("2099-06-12T18:00:00Z"))
+        self.assertIn("Hidden until the deadline passes.", body)
+
+    def test_opponent_top_five_visible_after_deadline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data_dir = Path(tmp)
+            (data_dir / "rooms.json").write_text(json.dumps(self.build_room()), encoding="utf-8")
+            (data_dir / "last_sync.json").write_text("{}", encoding="utf-8")
+            (data_dir / "tournament.json").write_text(json.dumps(self.build_tournament("2099-06-12T18:00:00Z")), encoding="utf-8")
+
+            app.config.update(
+                TESTING=True,
+                DATA_DIR=data_dir,
+                ROOMS_FILE=data_dir / "rooms.json",
+                LAST_SYNC_FILE=data_dir / "last_sync.json",
+                TOURNAMENT_FILE=data_dir / "tournament.json",
+                SYNC_INTERVAL_SECONDS=999999,
+            )
+
+            with app.test_client() as client:
+                with client.session_transaction() as session:
+                    session["memberships"] = {"ROOM01": {"slot": "one", "name": "Alice"}}
+                with patch("worldcup26.routes.top_five_locked", return_value=True), patch(
+                    "worldcup26.routes.top_five_deadline",
+                    return_value=datetime(2026, 6, 18, 16, 0, tzinfo=UTC),
+                ):
+                    body = client.get("/room/ROOM01").get_data(as_text=True)
+
+        self.assertIn("Opponent Top 5", body)
+        self.assertIn("Australia", body)
+        self.assertIn("Mexico", body)
 
 
 if __name__ == "__main__":
