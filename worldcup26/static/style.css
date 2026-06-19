@@ -332,6 +332,14 @@ main {
   padding: 1.3rem;
 }
 
+.inline-panel {
+  margin-top: 1rem;
+}
+
+.inline-panel h3 {
+  margin: 0 0 0.85rem;
+}
+
 .info-card h2,
 .form-panel h2,
 .panel h2,
@@ -700,6 +708,58 @@ select {
   gap: 0.75rem;
 }
 
+.pick-select-grid,
+.member-grid,
+.member-roster {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.randomizer-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.randomizer-list {
+  margin: 0.9rem 0 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.randomizer-text {
+  min-height: 260px;
+}
+
+.member-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.member-roster {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 1rem 1rem;
+}
+
+.member-chip {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.compact-note {
+  margin-top: 0.75rem;
+  color: var(--muted);
+}
+
+.compact-order-list {
+  margin-top: 0.75rem;
+}
+
 .top-five-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -982,6 +1042,11 @@ select {
   .dialog-top {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .member-row,
+  .member-roster {
+    grid-template-columns: 1fr;
   }
 
   .menu-dropdown {

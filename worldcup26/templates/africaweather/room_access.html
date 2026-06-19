@@ -1,0 +1,43 @@
+{% extends "africaweather_base.html" %}
+{% block title %}Enter Room {{ room.code }} | Africaweather Cup{% endblock %}
+{% block content %}
+  <section class="panel rules-panel">
+    <p class="eyebrow">Room {{ room.code }}</p>
+    <h1>Choose a team or create a new one.</h1>
+    <p class="hero-text">
+      Existing teams can relogin with their team password. New teams can claim their own team name and member list.
+    </p>
+
+    <section class="form-grid">
+      <article class="panel form-panel">
+        <h2>Relogin</h2>
+        {% for team_id, team in room.teams.items() %}
+          <form method="post" action="{{ url_for('africaweather.room_relogin', code=room.code, team_id=team_id) }}">
+            <label>
+              {{ team.name }} team password
+              <input name="team_secret" type="password" placeholder="Enter team password" minlength="4" required>
+            </label>
+            <button class="button button-secondary access-button" type="submit">Continue as {{ team.name }}</button>
+          </form>
+        {% endfor %}
+      </article>
+
+      <form class="panel form-panel" method="post" action="{{ url_for('africaweather.room_join_new_team', code=room.code) }}">
+        <h2>Create New Team</h2>
+        <label>
+          Team name
+          <input name="team_name" placeholder="Cloud Chasers" required>
+        </label>
+        <label>
+          Team password
+          <input name="team_secret" type="password" placeholder="Only your team uses this" minlength="4" required>
+        </label>
+        <div class="member-grid">
+          {% include "africaweather/_member_fields.html" %}
+        </div>
+        <p class="form-note">At least one member is required. Every member needs a real name and a gamer name.</p>
+        <button class="button button-primary" type="submit">Create Team</button>
+      </form>
+    </section>
+  </section>
+{% endblock %}

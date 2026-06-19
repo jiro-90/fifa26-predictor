@@ -1,0 +1,62 @@
+{% extends "africaweather_base.html" %}
+{% block title %}{{ room.name }} | Public View{% endblock %}
+{% block content %}
+  <section class="panel rules-panel">
+    <p class="eyebrow">Room {{ room.code }}</p>
+    <h1>{{ room.name }}</h1>
+    <p class="hero-text"><strong>Room deadline:</strong> {{ deadline_label }}</p>
+
+    {% if not locked %}
+      <p class="hero-text">This public leaderboard opens once the room deadline has passed.</p>
+    {% else %}
+      <p class="hero-text">Read-only view of the final leaderboard and team rosters.</p>
+    {% endif %}
+  </section>
+
+  {% if locked %}
+    <section class="panel leaderboard-panel">
+      <div class="section-title">
+        <h2>Leaderboard</h2>
+        <p>Scores are shown without any edit controls.</p>
+      </div>
+      <div class="leaderboard-table">
+        {% for team_id, card in score_entries %}
+          <details class="leader-breakdown" open>
+            <summary class="leader-row">
+              <div>
+                <strong>{{ card.name }}</strong>
+                <span>{{ card.member_count }} members</span>
+              </div>
+              <strong>{{ card.total }} pts</strong>
+            </summary>
+            <div class="leader-breakdown-grid">
+              <article class="score-tile">
+                <span>Total</span>
+                <strong>{{ card.total }}</strong>
+                <small>All predictions</small>
+              </article>
+              <article class="score-tile">
+                <span>Group Picks</span>
+                <strong>{{ card.group_total }}</strong>
+                <small>Top-two predictions</small>
+              </article>
+              <article class="score-tile">
+                <span>Top 3</span>
+                <strong>{{ card.podium_total }}</strong>
+                <small>Final podium prediction</small>
+              </article>
+            </div>
+            <div class="member-roster">
+              {% for member in room.teams[team_id].members %}
+                <div class="member-chip">
+                  <strong>{{ member.name }}</strong>
+                  <span>{{ member.gamer_name }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

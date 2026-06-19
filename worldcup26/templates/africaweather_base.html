@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Africaweather World Cup Pool{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="{{ url_for('africaweather.index') }}">
+          <img src="{{ url_for('static', filename='hero-crest.svg') }}" alt="Africaweather World Cup crest">
+          <span>Africaweather Cup</span>
+        </a>
+        <details class="site-menu" data-menu>
+          <summary class="menu-toggle" aria-label="Open menu">
+            <span class="sr-only">Menu</span>
+            <span class="menu-icon" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </summary>
+          <div class="menu-dropdown">
+            <a href="{{ url_for('africaweather.index') }}" data-menu-link>Home</a>
+            <a href="{{ url_for('africaweather.rules') }}" data-menu-link>Rules</a>
+            <a href="{{ url_for('africaweather.tools') }}" data-menu-link>Tools</a>
+            {% if active_aw_rooms %}
+              <div class="menu-divider"></div>
+              {% for item in active_aw_rooms %}
+                <a href="{{ item.href }}" data-menu-link>{{ item.label }}</a>
+              {% endfor %}
+            {% endif %}
+            {% block menu_links %}{% endblock %}
+          </div>
+        </details>
+      </header>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for message in messages %}
+              <div class="flash">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <main>
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+    <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

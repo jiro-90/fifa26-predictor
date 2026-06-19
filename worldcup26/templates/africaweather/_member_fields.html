@@ -1,0 +1,12 @@
+{% for slot in member_slots %}
+  <div class="member-row">
+    <label>
+      Member {{ slot }} name{% if loop.first %}*{% endif %}
+      <input name="member_name_{{ slot }}" placeholder="Full name" {% if loop.first %}required{% endif %}>
+    </label>
+    <label>
+      Gamer name{% if loop.first %}*{% endif %}
+      <input name="member_gamer_{{ slot }}" placeholder="@nickname" {% if loop.first %}required{% endif %}>
+    </label>
+  </div>
+{% endfor %}

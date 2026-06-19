@@ -1,0 +1,91 @@
+{% extends "africaweather_base.html" %}
+{% block title %}Africaweather World Cup Pool{% endblock %}
+{% block content %}
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Africaweather Internal Pool</p>
+      <h1>Build teams, call the groups, and chase the World Cup leaderboard.</h1>
+      <p class="hero-text">
+        Create a company room, add your team members and gamer names, then lock in top-two group picks
+        and the final top three before the deadlines hit.
+      </p>
+      <div class="hero-actions">
+        <button class="button button-primary" type="button" data-open-dialog="aw-create-room-dialog">Create a Room</button>
+        <button class="button button-secondary" type="button" data-open-dialog="aw-join-room-dialog">Join a Room</button>
+      </div>
+    </div>
+    <div class="hero-panel">
+      <img src="{{ url_for('static', filename='hero-ball.svg') }}" alt="Africaweather World Cup artwork">
+      <div class="hero-note">
+        <strong>Team competition</strong>
+        <span>Each team carries its own members, gamer names, and prediction sheet.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="info-grid">
+    <article class="info-card">
+      <h2>Team-Based Picks</h2>
+      <p>Every team predicts the top two in each group and the final top three overall.</p>
+    </article>
+    <article class="info-card">
+      <h2>Locked Fairly</h2>
+      <p>Other teams stay hidden until the single room deadline has passed.</p>
+    </article>
+  </section>
+
+  <dialog class="home-dialog" id="aw-create-room-dialog">
+    <div class="dialog-top">
+      <div>
+        <p class="eyebrow">Create Room</p>
+        <h2>Start the pool.</h2>
+      </div>
+      <button class="dialog-close" type="button" data-close-dialog aria-label="Close create room dialog">&times;</button>
+    </div>
+    <form class="form-panel dialog-form" method="post" action="{{ url_for('africaweather.create_room_view') }}">
+      <label>
+        Room name
+        <input name="room_name" placeholder="Africaweather Pool" required>
+      </label>
+      <label>
+        Your team name
+        <input name="team_name" placeholder="Forecast XI" required>
+      </label>
+      <label>
+        Team password
+        <input name="team_secret" type="password" placeholder="Used when your team logs back in" minlength="4" required>
+      </label>
+      <label>
+        Prediction deadline (UTC)
+        <input name="prediction_deadline" type="datetime-local" required>
+      </label>
+      <div class="member-grid">
+        {% include "africaweather/_member_fields.html" %}
+      </div>
+      <p class="form-note">The room creator sets one UTC deadline for every Africaweather prediction in that room.</p>
+      <p class="form-note">At least one team member is required. Add extra members now or leave the extra rows blank.</p>
+      <button class="button button-primary" type="submit">Create Africaweather Room</button>
+    </form>
+  </dialog>
+
+  <dialog class="home-dialog" id="aw-join-room-dialog" {% if request.args.get('code') %}data-auto-open="true"{% endif %}>
+    <div class="dialog-top">
+      <div>
+        <p class="eyebrow">Join Room</p>
+        <h2>Enter the company pool.</h2>
+      </div>
+      <button class="dialog-close" type="button" data-close-dialog aria-label="Close join room dialog">&times;</button>
+    </div>
+    <form class="form-panel dialog-form" method="post" action="{{ url_for('africaweather.join_room_view') }}">
+      <label>
+        Room code
+        <input name="code" placeholder="AB12CD" value="{{ request.args.get('code', '') }}" required>
+      </label>
+      <label>
+        Room password
+        <input name="password" placeholder="Shared room password" required>
+      </label>
+      <button class="button button-primary" type="submit">Continue</button>
+    </form>
+  </dialog>
+{% endblock %}

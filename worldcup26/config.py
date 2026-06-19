@@ -9,6 +9,7 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-before-production")
     DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data"))
     ROOMS_FILE = DATA_DIR / "rooms.json"
+    AFRICAWEATHER_ROOMS_FILE = DATA_DIR / "africaweather_rooms.json"
     TOURNAMENT_FILE = DATA_DIR / "tournament.json"
     LAST_SYNC_FILE = DATA_DIR / "last_sync.json"
     SYNC_LOG_FILE = Path(os.environ.get("SYNC_LOG_FILE", DATA_DIR / "sync.log"))

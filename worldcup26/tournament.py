@@ -40,6 +40,12 @@ def group_first_kickoff(group_id: str, matches: list[dict[str, Any]]) -> datetim
     return min(kickoff_values) if kickoff_values else None
 
 
+def tournament_first_kickoff(matches: list[dict[str, Any]]) -> datetime | None:
+    kickoff_values = [parse_utc(match.get("kickoff_utc")) for match in matches]
+    kickoff_values = [kickoff for kickoff in kickoff_values if kickoff is not None]
+    return min(kickoff_values) if kickoff_values else None
+
+
 def match_locked(match: dict[str, Any], now: datetime | None = None) -> bool:
     now = now or utc_now()
     kickoff = parse_utc(match.get("kickoff_utc"))
@@ -150,3 +156,7 @@ def actual_group_order(group: dict[str, Any], matches: list[dict[str, Any]], tea
 def group_complete(group_id: str, matches: list[dict[str, Any]]) -> bool:
     group_matches = [match for match in matches if match.get("group_id") == group_id]
     return bool(group_matches) and all(match.get("status") == "FINISHED" for match in group_matches)
+
+
+def group_has_finished_match(group_id: str, matches: list[dict[str, Any]]) -> bool:
+    return any(match.get("group_id") == group_id and match.get("status") == "FINISHED" for match in matches)

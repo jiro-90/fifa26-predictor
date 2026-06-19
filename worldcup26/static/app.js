@@ -26,6 +26,12 @@ function readFormState(form) {
       .join("|");
   }
 
+  if (form.dataset.saveForm === "aw-group" || form.dataset.saveForm === "aw-podium") {
+    return Array.from(form.querySelectorAll('select[name="team_ids"]'))
+      .map((select) => select.value)
+      .join("|");
+  }
+
   const home = form.querySelector('input[name="home"]')?.value.trim() ?? "";
   const away = form.querySelector('input[name="away"]')?.value.trim() ?? "";
   if (!home && !away) {
@@ -308,6 +314,15 @@ function bindPredictionForm(form) {
   }
 
   if (form.dataset.saveForm === "top-five") {
+    form.querySelectorAll('select[name="team_ids"]').forEach((select) => {
+      select.addEventListener("change", () => {
+        updatePredictionCardState(form);
+        updateSectionState(form);
+      });
+    });
+  }
+
+  if (form.dataset.saveForm === "aw-group" || form.dataset.saveForm === "aw-podium") {
     form.querySelectorAll('select[name="team_ids"]').forEach((select) => {
       select.addEventListener("change", () => {
         updatePredictionCardState(form);

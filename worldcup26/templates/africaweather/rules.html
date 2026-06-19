@@ -1,0 +1,41 @@
+{% extends "africaweather_base.html" %}
+{% block title %}Rules | Africaweather Cup{% endblock %}
+{% block content %}
+  <section class="panel rules-panel">
+    <p class="eyebrow">Rules</p>
+    <h1>Africaweather pool scoring</h1>
+
+    <div class="rules-list">
+      <article>
+        <h2>Group top two</h2>
+        <p>Pick the top two finishers in every group, in order.</p>
+        <p>Exact position: 3 points.</p>
+        <p>Off by one position: 1 point.</p>
+        <p>Anything else: 0 points.</p>
+        <p>Every group pick in the room locks at the single deadline chosen by the room creator.</p>
+      </article>
+
+      <article>
+        <h2>Final top three</h2>
+        <p>Pick the final 1st, 2nd, and 3rd placed teams.</p>
+        <p>Exact position: 4 points.</p>
+        <p>Off by one position: 3 points.</p>
+        <p>Off by two positions: 1 point.</p>
+        <p>Anything else: 0 points.</p>
+        <p>The top-three pick uses the same room deadline as the group picks.</p>
+      </article>
+
+      <article>
+        <h2>Team format</h2>
+        <p>Each team has its own team name, password, and member list with real names and gamer names.</p>
+        <p>Use the same team password when returning to the room later.</p>
+      </article>
+
+      <article>
+        <h2>Visibility</h2>
+        <p>Other teams' predictions stay hidden until the room deadline has passed.</p>
+        <p>Once that single deadline passes, everyone can compare predictions and points in the room.</p>
+      </article>
+    </div>
+  </section>
+{% endblock %}

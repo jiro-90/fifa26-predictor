@@ -1,0 +1,56 @@
+{% extends "africaweather_base.html" %}
+{% block title %}Tools | Africaweather Cup{% endblock %}
+{% block content %}
+  <section class="panel rules-panel">
+    <p class="eyebrow">Accessory Tools</p>
+    <h1>Randomize teams from a name list.</h1>
+    <p class="hero-text">Paste names, choose how many teams you want, and reshuffle until the split looks right.</p>
+  </section>
+
+  <section class="layout-grid">
+    <form class="panel form-panel" method="post" action="{{ url_for('africaweather.tools') }}">
+      <h2>Team Randomizer</h2>
+      <label>
+        Names
+        <textarea name="names" class="share-text randomizer-text" placeholder="One name per line" required>{{ names_text }}</textarea>
+      </label>
+      <label>
+        Number of teams
+        <input name="team_count" type="number" min="2" value="{{ team_count }}" required>
+      </label>
+      <label>
+        Team name prefix
+        <input name="team_prefix" value="{{ team_prefix }}" placeholder="Team">
+      </label>
+      <div class="hero-actions">
+        <button class="button button-primary" type="submit">Randomize</button>
+        {% if randomized_teams %}
+          <button class="button button-secondary" type="submit">Reshuffle</button>
+        {% endif %}
+      </div>
+    </form>
+
+    <section class="panel form-panel">
+      <h2>Split Preview</h2>
+      {% if randomized_teams %}
+        <div class="randomizer-grid">
+          {% for team in randomized_teams %}
+            <article class="group-card">
+              <div class="group-card-top">
+                <strong>{{ team.name }}</strong>
+                <span>{{ team.members|length }} people</span>
+              </div>
+              <ul class="randomizer-list">
+                {% for person in team.members %}
+                  <li>{{ person }}</li>
+                {% endfor %}
+              </ul>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="form-note">Your randomized teams will appear here.</p>
+      {% endif %}
+    </section>
+  </section>
+{% endblock %}

@@ -1,0 +1,347 @@
+{% extends "africaweather_base.html" %}
+{% block title %}{{ room.name }} | Africaweather Cup{% endblock %}
+{% block menu_links %}
+  <div class="menu-divider"></div>
+  <a href="#leaderboard" data-menu-link>Leaderboard</a>
+  <a href="#podium" data-menu-link>Top 3</a>
+  <a href="#groups" data-menu-link>Groups</a>
+{% endblock %}
+{% block content %}
+  <section class="room-header">
+    <div>
+      <p class="eyebrow">Room {{ room.code }}</p>
+      <h1>{{ room.name }}</h1>
+      <p class="hero-text">Signed in as {{ membership.team_name }}. Share the room code and password with other Africaweather teams.</p>
+      <p class="hero-text"><strong>Room deadline:</strong> {{ deadline_label }}</p>
+      <div class="invite-stack">
+        <div class="secret-grid">
+          <div class="secret-card">
+            <span>Room code</span>
+            <strong>{{ room.code }}</strong>
+          </div>
+          <div class="secret-card">
+            <span>Room password</span>
+            <strong>{{ room.share_password }}</strong>
+          </div>
+        </div>
+        <div class="share-card">
+          <span>Share this invite</span>
+          <input id="aw-invite-link" class="share-input" value="{{ invite_link }}" readonly>
+          <button class="button button-secondary button-small" type="button" data-copy-target="aw-invite-link">Copy link</button>
+          <textarea id="aw-invite-text" class="share-text" readonly>Join our Africaweather World Cup room.
+Link: {{ invite_link }}
+Code: {{ room.code }}
+Password: {{ room.share_password }}</textarea>
+          <button class="button button-primary button-small" type="button" data-copy-target="aw-invite-text">Copy invite text</button>
+        </div>
+        <div class="share-card">
+          <span>Public read-only link</span>
+          <input id="aw-public-link" class="share-input" value="{{ public_link }}" readonly>
+          <button class="button button-secondary button-small" type="button" data-copy-target="aw-public-link">Copy public link</button>
+          <p class="form-note">Anyone with this link can view the leaderboard and team rosters after the room deadline passes.</p>
+        </div>
+      </div>
+    </div>
+    <div class="score-summary">
+      {% for team_id, card in score_entries %}
+        <article class="score-tile">
+          <span>{{ card.name }}</span>
+          <strong>{{ card.total }}</strong>
+          <small>Total points</small>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="left-column room-main">
+    <section class="panel leaderboard-panel anchor-target" id="leaderboard">
+      <div class="section-title">
+        <h2>Leaderboard</h2>
+        <p>Open a team row to see the split between group points and final podium points.</p>
+      </div>
+      <div class="leaderboard-table">
+        {% for team_id, card in score_entries %}
+          <details class="leader-breakdown" data-persist-id="aw-leader-{{ team_id }}">
+            <summary class="leader-row">
+              <div>
+                <strong>{{ card.name }}</strong>
+                <span>{{ card.member_count }} members</span>
+              </div>
+              <strong>{{ card.total }} pts</strong>
+            </summary>
+            <div class="leader-breakdown-grid">
+              <article class="score-tile">
+                <span>Total</span>
+                <strong>{{ card.total }}</strong>
+                <small>All predictions</small>
+              </article>
+              <article class="score-tile">
+                <span>Group Picks</span>
+                <strong>{{ card.group_total }}</strong>
+                <small>Top-two predictions</small>
+              </article>
+              <article class="score-tile">
+                <span>Top 3</span>
+                <strong>{{ card.podium_total }}</strong>
+                <small>Final podium prediction</small>
+              </article>
+            </div>
+            <div class="member-roster">
+              {% for member in room.teams[team_id].members %}
+                <div class="member-chip">
+                  <strong>{{ member.name }}</strong>
+                  <span>{{ member.gamer_name }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <h2>{{ membership.team_name }} Roster</h2>
+        <p>Add more members to your team at any time. Existing members cannot be removed here.</p>
+      </div>
+      <div class="member-roster">
+        {% for member in room.teams[membership.team_id].members %}
+          <div class="member-chip">
+            <strong>{{ member.name }}</strong>
+            <span>{{ member.gamer_name }}</span>
+          </div>
+        {% endfor %}
+      </div>
+      <form
+        class="panel form-panel inline-panel"
+        method="post"
+        action="{{ url_for('africaweather.add_members', code=room.code) }}"
+      >
+        <h3>Add Team Members</h3>
+        <div class="member-grid">
+          {% include "africaweather/_member_fields.html" %}
+        </div>
+        <button class="button button-primary" type="submit">Add Members</button>
+      </form>
+    </section>
+
+    <section class="panel anchor-target" id="podium">
+      <div class="section-title">
+        <h2>Final Top 3</h2>
+        <p>Choose the tournament podium in order before the room deadline.</p>
+      </div>
+      <div class="section-stack" data-accordion>
+        <details class="group-section{% if podium.saved_order %} is-section-saved{% elif podium.locked %} is-section-missed{% endif %}" data-persist-id="aw-podium" data-section-state data-accordion-item>
+          <summary class="group-summary">
+            <div>
+              <p class="eyebrow">Tournament Podium</p>
+              <strong>{{ "Saved" if podium.saved_order else ("Locked" if podium.locked else "Open") }}</strong>
+            </div>
+            <span>Room deadline {{ podium.deadline_label }}</span>
+          </summary>
+
+          <div class="group-section-body">
+            <form
+              class="group-card grouped-card prediction-form{% if podium.saved_order %} is-saved{% elif podium.locked %} is-missed{% endif %}{% if podium.locked %} is-locked{% endif %}"
+              method="post"
+              action="{{ url_for('africaweather.save_podium', code=room.code) }}"
+              data-save-form="aw-podium"
+              data-card-state
+              data-locked="{{ 'true' if podium.locked else 'false' }}"
+              data-initial-state="{{ podium.selection | join('|') }}"
+              data-saved-state="{{ podium.saved_order | join('|') if podium.saved_order else '' }}"
+            >
+              <div class="group-card-top">
+                <div>
+                  <strong>Your final top 3</strong>
+                  <p class="form-note">Choose three different teams in exact finishing order.</p>
+                </div>
+                <button class="button button-small" type="submit" {% if podium.locked %}disabled{% endif %}>Save</button>
+              </div>
+              <div class="top-five-grid">
+                {% for selected_team_id in podium.selection %}
+                  <label class="top-five-row">
+                    <span class="position-badge">{{ loop.index }}</span>
+                    <select name="team_ids" {% if podium.locked %}disabled{% endif %} required>
+                      <option value="">Choose a team</option>
+                      {% for section in group_sections %}
+                        <optgroup label="{{ section.group.name }}">
+                          {% for team in section.group.teams %}
+                            <option value="{{ team.id }}" {% if team.id == selected_team_id %}selected{% endif %}>{{ team.name }}</option>
+                          {% endfor %}
+                        </optgroup>
+                      {% endfor %}
+                    </select>
+                  </label>
+                {% endfor %}
+              </div>
+
+              <div class="result-details">
+                <div class="result-heading">
+                  <span>Results and scoring</span>
+                  <strong>{{ "Scored" if podium.actual_top_three|length == 3 else "Pending final podium" }}</strong>
+                </div>
+                {% if podium.actual_top_three %}
+                  <div class="actual-order-panel">
+                    <strong>Actual top 3</strong>
+                    <ol class="actual-order-list">
+                      {% for team in podium.actual_top_three %}
+                        <li>
+                          <img src="https://flagcdn.com/w80/{{ team.flag }}.png" alt="{{ team.name }} flag">
+                          <span>{{ team.name }}</span>
+                        </li>
+                      {% endfor %}
+                    </ol>
+                  </div>
+                {% endif %}
+                <div class="result-score-grid">
+                  {% for item in podium.score_cards %}
+                    <article class="result-score-card">
+                      <div class="result-score-top">
+                        <strong>{{ item.name }}</strong>
+                        <span>{{ item.total }} pts</span>
+                      </div>
+                      {% if item.team_id == membership.team_id or podium.locked %}
+                        {% if item.prediction_teams %}
+                          <ol class="actual-order-list compact-order-list">
+                            {% for team in item.prediction_teams %}
+                              <li>
+                                <img src="https://flagcdn.com/w80/{{ team.flag }}.png" alt="{{ team.name }} flag">
+                                <span>{{ team.name }}</span>
+                              </li>
+                            {% endfor %}
+                          </ol>
+                        {% else %}
+                          <div class="compact-note">No top-three prediction submitted.</div>
+                        {% endif %}
+                      {% else %}
+                          <div class="compact-note">Hidden until the room deadline passes.</div>
+                      {% endif %}
+                      <ul>
+                        {% for line in item.breakdown %}
+                          <li>{{ line }}</li>
+                        {% endfor %}
+                      </ul>
+                    </article>
+                  {% endfor %}
+                </div>
+              </div>
+            </form>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel anchor-target" id="groups">
+      <div class="section-title">
+        <h2>Groups</h2>
+        <p>For each group, choose the top two finishers in order.</p>
+      </div>
+      <div class="section-stack" data-accordion>
+        {% for section in group_sections %}
+          {% set group = section.group %}
+          <details class="group-section{% if group.locked %} is-locked{% endif %}{% if section.all_saved %} is-section-saved{% endif %}" data-persist-id="aw-group-{{ group.id }}" data-section-state data-accordion-item>
+            <summary class="group-summary">
+              <div>
+                <p class="eyebrow">{{ group.name }}</p>
+                <strong>{{ "Saved" if group.saved_top_two else ("Locked" if group.locked else "Open") }}</strong>
+              </div>
+              <span>Room deadline {{ deadline_label }}</span>
+            </summary>
+
+            <div class="group-section-body">
+              <form
+                class="group-card grouped-card prediction-form{% if group.saved_top_two %} is-saved{% elif group.locked %} is-missed{% endif %}{% if group.locked %} is-locked{% endif %}"
+                method="post"
+                action="{{ url_for('africaweather.save_group', code=room.code, group_id=group.id) }}"
+                data-save-form="aw-group"
+                data-card-state
+                data-locked="{{ 'true' if group.locked else 'false' }}"
+                data-initial-state="{{ group.saved_top_two | join('|') if group.saved_top_two else '|' }}"
+                data-saved-state="{{ group.saved_top_two | join('|') if group.saved_top_two else '' }}"
+              >
+                <div class="group-card-top">
+                  <div>
+                    <strong>Your top two</strong>
+                    <p class="form-note">Pick 1st and 2nd place for this group before the room deadline.</p>
+                  </div>
+                  <button class="button button-small" type="submit" {% if group.locked %}disabled{% endif %}>Save</button>
+                </div>
+                <div class="pick-select-grid">
+                  {% for selected_id in (group.saved_top_two if group.saved_top_two else ["", ""]) %}
+                    <label class="top-five-row">
+                      <span class="position-badge">{{ loop.index }}</span>
+                      <select name="team_ids" {% if group.locked %}disabled{% endif %} required>
+                        <option value="">Choose a team</option>
+                        {% for team in group.teams %}
+                          <option value="{{ team.id }}" {% if team.id == selected_id %}selected{% endif %}>{{ team.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </label>
+                  {% endfor %}
+                </div>
+
+                <div class="result-details">
+                  <div class="result-heading">
+                    <span>Results and scoring</span>
+                    <strong>
+                      {% if group.actual_top_two %}
+                        {{ "Scored from final table" if group.table_is_final else "Live table points" }}
+                      {% else %}
+                        Pending group table
+                      {% endif %}
+                    </strong>
+                  </div>
+                  {% if group.actual_top_two %}
+                    <div class="actual-order-panel">
+                      <strong>{{ "Actual top two" if group.table_is_final else "Current top two" }}</strong>
+                      <ol class="actual-order-list">
+                        {% for team in group.actual_top_two %}
+                          <li>
+                            <img src="https://flagcdn.com/w80/{{ team.flag }}.png" alt="{{ team.name }} flag">
+                            <span>{{ team.name }}</span>
+                          </li>
+                        {% endfor %}
+                      </ol>
+                    </div>
+                  {% endif %}
+                  <div class="result-score-grid">
+                    {% for item in section.score_cards %}
+                      <article class="result-score-card">
+                        <div class="result-score-top">
+                          <strong>{{ item.name }}</strong>
+                          <span>{{ item.total }} pts</span>
+                        </div>
+                        {% if item.team_id == membership.team_id or group.locked %}
+                          {% if item.prediction_teams %}
+                            <ol class="actual-order-list compact-order-list">
+                              {% for team in item.prediction_teams %}
+                                <li>
+                                  <img src="https://flagcdn.com/w80/{{ team.flag }}.png" alt="{{ team.name }} flag">
+                                  <span>{{ team.name }}</span>
+                                </li>
+                              {% endfor %}
+                            </ol>
+                          {% else %}
+                            <div class="compact-note">No top-two prediction submitted.</div>
+                          {% endif %}
+                        {% else %}
+                          <div class="compact-note">Hidden until the room deadline passes.</div>
+                        {% endif %}
+                        <ul>
+                          {% for line in item.breakdown %}
+                            <li>{{ line }}</li>
+                          {% endfor %}
+                        </ul>
+                      </article>
+                    {% endfor %}
+                  </div>
+                </div>
+              </form>
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+{% endblock %}
