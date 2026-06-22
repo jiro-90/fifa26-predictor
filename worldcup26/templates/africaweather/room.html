@@ -130,14 +130,48 @@ Password: {{ room.share_password }}</textarea>
             <button class="button button-primary" type="submit" {% if podium.locked %}disabled{% endif %}>Save</button>
           </form>
         </details>
-        <div class="member-roster">
-          {% for member in room.teams[membership.team_id].members %}
-            <div class="member-chip">
-              <strong>{{ member.name }}</strong>
-              <span>{{ member.gamer_name }}</span>
+        <form
+          class="panel form-panel inline-panel prediction-form"
+          method="post"
+          action="{{ url_for('africaweather.save_team_members', code=room.code) }}"
+          data-save-form="aw-team-members"
+          data-card-state
+          data-locked="{{ 'true' if podium.locked else 'false' }}"
+          data-initial-state="{{ team_members_state }}"
+          data-saved-state="{{ team_members_state }}"
+        >
+          <div class="group-card-top">
+            <div>
+              <h3>Edit Team Members</h3>
+              <p class="form-note">You can edit existing names and gamer names until the room deadline. Members cannot be removed here.</p>
             </div>
-          {% endfor %}
-        </div>
+            <button class="button button-primary button-small" type="submit" {% if podium.locked %}disabled{% endif %}>Save</button>
+          </div>
+          <div class="member-grid">
+            {% for member in team_members %}
+              <div class="member-row">
+                <label>
+                  Name
+                  <input
+                    name="existing_member_name_{{ loop.index0 }}"
+                    value="{{ member.name }}"
+                    {% if podium.locked %}disabled{% endif %}
+                    required
+                  >
+                </label>
+                <label>
+                  Gamer Name
+                  <input
+                    name="existing_member_gamer_{{ loop.index0 }}"
+                    value="{{ member.gamer_name }}"
+                    {% if podium.locked %}disabled{% endif %}
+                    required
+                  >
+                </label>
+              </div>
+            {% endfor %}
+          </div>
+        </form>
         <form
           class="panel form-panel inline-panel"
           method="post"

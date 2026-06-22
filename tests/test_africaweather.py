@@ -302,6 +302,80 @@ class AfricaweatherVisibilityTests(unittest.TestCase):
             saved = json.loads((data_dir / "africaweather_rooms.json").read_text(encoding="utf-8"))
             self.assertEqual(saved["rooms"]["ROOM01"]["teams"]["storm"]["name"], "Storm Chasers")
 
+    def test_team_can_edit_members_before_deadline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data_dir = Path(tmp)
+            (data_dir / "africaweather_rooms.json").write_text(
+                json.dumps(self.build_room("2099-06-12T18:00:00Z")),
+                encoding="utf-8",
+            )
+            (data_dir / "rooms.json").write_text('{"rooms": {}}', encoding="utf-8")
+            (data_dir / "last_sync.json").write_text("{}", encoding="utf-8")
+            (data_dir / "tournament.json").write_text(json.dumps(self.build_tournament("2099-06-12T18:00:00Z")), encoding="utf-8")
+
+            app.config.update(
+                TESTING=True,
+                DATA_DIR=data_dir,
+                AFRICAWEATHER_ROOMS_FILE=data_dir / "africaweather_rooms.json",
+                ROOMS_FILE=data_dir / "rooms.json",
+                LAST_SYNC_FILE=data_dir / "last_sync.json",
+                TOURNAMENT_FILE=data_dir / "tournament.json",
+                SYNC_INTERVAL_SECONDS=999999,
+            )
+
+            with app.test_client() as client:
+                with client.session_transaction() as session:
+                    session["aw_memberships"] = {"ROOM01": {"team_id": "storm", "team_name": "Storm"}}
+                response = client.post(
+                    "/africaweather/room/ROOM01/team-members/edit",
+                    data={
+                        "existing_member_name_0": "Alice Updated",
+                        "existing_member_gamer_0": "CloudBoss",
+                    },
+                    headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+                )
+                self.assertEqual(response.status_code, 200)
+                payload = json.loads(response.get_data(as_text=True))
+                self.assertTrue(payload["ok"])
+
+            saved = json.loads((data_dir / "africaweather_rooms.json").read_text(encoding="utf-8"))
+            members = saved["rooms"]["ROOM01"]["teams"]["storm"]["members"]
+            self.assertEqual(members, [{"name": "Alice Updated", "gamer_name": "CloudBoss"}])
+
+    def test_team_cannot_edit_members_after_deadline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data_dir = Path(tmp)
+            (data_dir / "africaweather_rooms.json").write_text(
+                json.dumps(self.build_room("2000-06-12T18:00:00Z")),
+                encoding="utf-8",
+            )
+            (data_dir / "rooms.json").write_text('{"rooms": {}}', encoding="utf-8")
+            (data_dir / "last_sync.json").write_text("{}", encoding="utf-8")
+            (data_dir / "tournament.json").write_text(json.dumps(self.build_tournament("2099-06-12T18:00:00Z")), encoding="utf-8")
+
+            app.config.update(
+                TESTING=True,
+                DATA_DIR=data_dir,
+                AFRICAWEATHER_ROOMS_FILE=data_dir / "africaweather_rooms.json",
+                ROOMS_FILE=data_dir / "rooms.json",
+                LAST_SYNC_FILE=data_dir / "last_sync.json",
+                TOURNAMENT_FILE=data_dir / "tournament.json",
+                SYNC_INTERVAL_SECONDS=999999,
+            )
+
+            with app.test_client() as client:
+                with client.session_transaction() as session:
+                    session["aw_memberships"] = {"ROOM01": {"team_id": "storm", "team_name": "Storm"}}
+                response = client.post(
+                    "/africaweather/room/ROOM01/team-members/edit",
+                    data={
+                        "existing_member_name_0": "Alice Updated",
+                        "existing_member_gamer_0": "CloudBoss",
+                    },
+                    headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+                )
+                self.assertEqual(response.status_code, 409)
+
     def test_team_cannot_rename_after_deadline(self):
         with tempfile.TemporaryDirectory() as tmp:
             data_dir = Path(tmp)

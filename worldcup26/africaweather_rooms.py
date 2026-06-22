@@ -73,6 +73,19 @@ def normalize_optional_members(member_rows: list[dict[str, str]]) -> tuple[list[
     return members, None
 
 
+def normalize_existing_members(member_rows: list[dict[str, str]]) -> tuple[list[dict[str, str]], str | None]:
+    members = []
+    for row in member_rows:
+        name = row.get("name", "").strip()
+        gamer_name = row.get("gamer_name", "").strip()
+        if not name or not gamer_name:
+            return [], "Each existing team member needs both a name and a gamer name."
+        members.append({"name": name, "gamer_name": gamer_name})
+    if not members:
+        return [], "Add at least one team member."
+    return members, None
+
+
 def create_room(
     room_name: str,
     team_name: str,
@@ -232,6 +245,22 @@ def add_team_members(code: str, team_id: str, member_rows: list[dict[str, str]])
     return updated["rooms"][code], None
 
 
+def update_team_members(code: str, team_id: str, member_rows: list[dict[str, str]]):
+    members, error = normalize_existing_members(member_rows)
+    if error:
+        return None, error
+
+    def updater(payload):
+        room = payload["rooms"][code]
+        team = room.get("teams", {}).get(team_id)
+        team["members"] = members
+        team["members_updated_at"] = utc_timestamp()
+        return payload
+
+    updated = locked_json_update(current_app.config["AFRICAWEATHER_ROOMS_FILE"], rooms_default(), updater)
+    return updated["rooms"][code], None
+
+
 def rename_team(code: str, team_id: str, new_team_name: str):
     room = get_room(code)
     if room is None:
@@ -264,6 +293,7 @@ __all__ = [
     "save_group_prediction",
     "save_podium_prediction",
     "team_prediction_default",
+    "update_team_members",
     "validate_player_secret",
     "verify_room_access",
     "verify_team_login",

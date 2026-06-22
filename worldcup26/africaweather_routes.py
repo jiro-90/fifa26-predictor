@@ -14,6 +14,7 @@ from .africaweather_rooms import (
     rename_team,
     save_group_prediction,
     save_podium_prediction,
+    update_team_members,
     validate_player_secret,
     verify_room_access,
     verify_team_login,
@@ -65,6 +66,16 @@ def collect_member_rows(form) -> list[dict[str, str]]:
             "gamer_name": form.get(f"member_gamer_{slot}", ""),
         }
         for slot in member_slots()
+    ]
+
+
+def collect_existing_member_rows(form, member_count: int) -> list[dict[str, str]]:
+    return [
+        {
+            "name": form.get(f"existing_member_name_{index}", ""),
+            "gamer_name": form.get(f"existing_member_gamer_{index}", ""),
+        }
+        for index in range(member_count)
     ]
 
 
@@ -279,6 +290,8 @@ def room(code):
     matches = tournament.get("matches", [])
     deadline_label = room_deadline_label(room)
     room_is_locked = room_locked(room)
+    team_members = room["teams"][current_team_id].get("members", [])
+    team_members_state = "|".join(f"{member['name']}::{member['gamer_name']}" for member in team_members)
     current_predictions = room.get("predictions", {}).get(current_team_id, {})
     podium_saved = current_predictions.get("podium") or []
     podium_saved = [team_id for team_id in podium_saved if team_id in teams]
@@ -343,6 +356,8 @@ def room(code):
         "africaweather/room.html",
         room=room,
         membership=membership,
+        team_members=team_members,
+        team_members_state=team_members_state,
         score_entries=score_entries,
         podium={
             "locked": room_is_locked,
@@ -372,6 +387,27 @@ def add_members(code):
     if error:
         return save_feedback(error, ok=False, status_code=400, code=code)
     return save_feedback("Team members added.", ok=True, status_code=200, code=code)
+
+
+@aw_bp.post("/room/<code>/team-members/edit")
+@login_required
+def save_team_members(code):
+    room = get_room(code)
+    if room is None:
+        return save_feedback("Room not found.", ok=False, status_code=404, code=code)
+    if room_locked(room):
+        return save_feedback("Team members are locked already.", ok=False, status_code=409, code=code)
+
+    membership = session["aw_memberships"][code]
+    existing_members = room["teams"][membership["team_id"]].get("members", [])
+    updated_room, error = update_team_members(
+        code,
+        membership["team_id"],
+        collect_existing_member_rows(request.form, len(existing_members)),
+    )
+    if error:
+        return save_feedback(error, ok=False, status_code=400, code=code)
+    return save_feedback("Team members saved.", ok=True, status_code=200, code=code)
 
 
 @aw_bp.post("/room/<code>/team-name")
