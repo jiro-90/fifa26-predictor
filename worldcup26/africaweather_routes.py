@@ -11,6 +11,7 @@ from .africaweather_rooms import (
     create_room,
     get_room,
     join_team,
+    rename_team,
     save_group_prediction,
     save_podium_prediction,
     validate_player_secret,
@@ -371,6 +372,27 @@ def add_members(code):
     if error:
         return save_feedback(error, ok=False, status_code=400, code=code)
     return save_feedback("Team members added.", ok=True, status_code=200, code=code)
+
+
+@aw_bp.post("/room/<code>/team-name")
+@login_required
+def save_team_name(code):
+    room = get_room(code)
+    if room is None:
+        return save_feedback("Room not found.", ok=False, status_code=404, code=code)
+    if room_locked(room):
+        return save_feedback("Team names are locked already.", ok=False, status_code=409, code=code)
+
+    membership = session["aw_memberships"][code]
+    new_name = request.form.get("team_name", "").strip()
+    updated_room, error = rename_team(code, membership["team_id"], new_name)
+    if error:
+        return save_feedback(error, ok=False, status_code=400, code=code)
+
+    memberships = session.setdefault("aw_memberships", {})
+    memberships[code]["team_name"] = updated_room["teams"][membership["team_id"]]["name"]
+    session.modified = True
+    return save_feedback("Team name saved.", ok=True, status_code=200, code=code)
 
 
 @aw_bp.get("/public/<code>")

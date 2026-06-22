@@ -32,6 +32,10 @@ function readFormState(form) {
       .join("|");
   }
 
+  if (form.dataset.saveForm === "aw-team-name") {
+    return form.querySelector('input[name="team_name"]')?.value.trim() ?? "";
+  }
+
   const home = form.querySelector('input[name="home"]')?.value.trim() ?? "";
   const away = form.querySelector('input[name="away"]')?.value.trim() ?? "";
   if (!home && !away) {
@@ -325,6 +329,15 @@ function bindPredictionForm(form) {
   if (form.dataset.saveForm === "aw-group" || form.dataset.saveForm === "aw-podium") {
     form.querySelectorAll('select[name="team_ids"]').forEach((select) => {
       select.addEventListener("change", () => {
+        updatePredictionCardState(form);
+        updateSectionState(form);
+      });
+    });
+  }
+
+  if (form.dataset.saveForm === "aw-team-name") {
+    form.querySelectorAll('input[name="team_name"]').forEach((input) => {
+      input.addEventListener("input", () => {
         updatePredictionCardState(form);
         updateSectionState(form);
       });

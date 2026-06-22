@@ -340,6 +340,39 @@ main {
   margin: 0 0 0.85rem;
 }
 
+.inline-editor {
+  margin-top: 1rem;
+}
+
+.inline-editor summary {
+  list-style: none;
+}
+
+.inline-editor summary::-webkit-details-marker {
+  display: none;
+}
+
+.inline-editor-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+  color: var(--navy);
+}
+
+.icon-chip {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow);
+  font-size: 1rem;
+}
+
 .info-card h2,
 .form-panel h2,
 .panel h2,
@@ -589,6 +622,37 @@ select {
   padding: 1rem 1.1rem;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.55);
+}
+
+.panel-summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel-summary h2 {
+  margin: 0 0 0.35rem;
+}
+
+.panel-summary p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.collapsible-panel {
+  padding: 1.3rem;
+}
+
+.collapsible-panel-body {
+  margin-top: 1rem;
 }
 
 .group-summary::-webkit-details-marker {

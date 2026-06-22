@@ -99,31 +99,58 @@ Password: {{ room.share_password }}</textarea>
       </div>
     </section>
 
-    <section class="panel">
-      <div class="section-title">
-        <h2>{{ membership.team_name }} Roster</h2>
-        <p>Add more members to your team at any time. Existing members cannot be removed here.</p>
-      </div>
-      <div class="member-roster">
-        {% for member in room.teams[membership.team_id].members %}
-          <div class="member-chip">
-            <strong>{{ member.name }}</strong>
-            <span>{{ member.gamer_name }}</span>
-          </div>
-        {% endfor %}
-      </div>
-      <form
-        class="panel form-panel inline-panel"
-        method="post"
-        action="{{ url_for('africaweather.add_members', code=room.code) }}"
-      >
-        <h3>Add Team Members</h3>
-        <div class="member-grid">
-          {% include "africaweather/_member_fields.html" %}
+    <details class="panel collapsible-panel" data-persist-id="aw-roster">
+      <summary class="panel-summary">
+        <div>
+          <h2>{{ membership.team_name }} Roster</h2>
+          <p>Add more members to your team at any time. Existing members cannot be removed here.</p>
         </div>
-        <button class="button button-primary" type="submit">Add Members</button>
-      </form>
-    </section>
+      </summary>
+      <div class="collapsible-panel-body">
+        <details class="inline-editor">
+          <summary class="inline-editor-summary">
+            <strong>{{ membership.team_name }}</strong>
+            <span class="icon-chip" aria-hidden="true">&#9998;</span>
+          </summary>
+          <form
+            class="panel form-panel inline-panel prediction-form"
+            method="post"
+            action="{{ url_for('africaweather.save_team_name', code=room.code) }}"
+            data-save-form="aw-team-name"
+            data-card-state
+            data-locked="{{ 'true' if podium.locked else 'false' }}"
+            data-initial-state="{{ membership.team_name }}"
+            data-saved-state="{{ membership.team_name }}"
+          >
+            <label>
+              Team name
+              <input name="team_name" value="{{ membership.team_name }}" {% if podium.locked %}disabled{% endif %} required>
+            </label>
+            <p class="form-note">You can change your team name until the room deadline. After that it is locked.</p>
+            <button class="button button-primary" type="submit" {% if podium.locked %}disabled{% endif %}>Save</button>
+          </form>
+        </details>
+        <div class="member-roster">
+          {% for member in room.teams[membership.team_id].members %}
+            <div class="member-chip">
+              <strong>{{ member.name }}</strong>
+              <span>{{ member.gamer_name }}</span>
+            </div>
+          {% endfor %}
+        </div>
+        <form
+          class="panel form-panel inline-panel"
+          method="post"
+          action="{{ url_for('africaweather.add_members', code=room.code) }}"
+        >
+          <h3>Add Team Members</h3>
+          <div class="member-grid">
+            {% include "africaweather/_member_fields.html" %}
+          </div>
+          <button class="button button-primary" type="submit">Add Members</button>
+        </form>
+      </div>
+    </details>
 
     <section class="panel anchor-target" id="podium">
       <div class="section-title">
